@@ -1,4 +1,10 @@
+
+
+
+
 module Qt
+
+using Qt:Asset
 
 # Write your package code here.
 
@@ -12,5 +18,7 @@ test_function()
 
 
 end
+
+export Qt
 
 

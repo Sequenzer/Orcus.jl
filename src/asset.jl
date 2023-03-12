@@ -3,64 +3,55 @@ using TimeSeries
 using Dates
 using Plots
 
-mutable struct asset
-    symbol
+export Asset,populate_ohlc
+
+mutable struct Asset
+    ticker::String  
+    interval::StepRange{Date, <:Period}
     data
-    get_symbol
-    create_random_OHLC
-    function asset(symbol)
+    function Asset(ticker::String,interval::StepRange{Date, <:Period}=Date(2010):Dates.Day(5):Date(2020))
         this = new()
-        this.symbol = symbol
+        this.ticker = ticker
+        this.interval= interval
         return this
     end
 
 end
-#Define Methods on Asset
-function Base.getproperty(this::asset, s::Symbol)
-    if s == :get_symbol
-        function()
-            return this.symbol
+function populate_ohlc(asset::Asset,prop_func::Function=(x->rand()-0.5),start::Number=100,precision::Int=10)
+    println(asset.interval)
+    dates=asset.interval
+    n = length(dates)
+    function randomvalue(x,n::Int,f)
+        arr::Vector{Number}=[x]
+        while (length(arr)<n)
+            old = last(arr)
+            push!(arr,old+f(old))
         end
-    elseif s == :create_random_OHLC
-        function(startdate,enddate,intervall)
-                dates = startdate:intervall:enddate
-                n = length(dates)
-                ##Should be changeable
-                base = rand()*100+50
-                f = f = x -> rand()-0.5
-                ## Random Walk through Dates
-                function randomvalue(x,n::Int64,f)
-                    arr::Vector{Float64}=[x]
-                    while (length(arr)<n)
-                        old = last(arr)
-                        push!(arr,old+f(old))
-                    end
-                    return arr
-                end
-                this.data = TimeArray(dates, randomvalue(base,n,f))
-                return this.data
-        end
-    elseif s == :method_2
-        function(val_0, val_1)
-            this.field_0 = val_0
-            this.field_1 = val_1
-        end
-    else
-        getfield(this, s)
+        return arr
     end
+    function randomohlc(base::Number,n::Int,f,precision::Int)
+        ohlc=[]
+        lst=base
+        while (length(ohlc)<n)
+            arr=randomvalue(lst,precision,f)
+            sortedarr=sort(arr)
+            lst=last(arr)
+            push!(ohlc,[first(arr),last(sortedarr),first(sortedarr),last(arr)])
+        end
+        return ohlc
+    end
+    asset.data= TimeArray(dates,transpose(hcat(randomohlc(start,n,prop_func,precision)...)),["Open","High","Low","Close"])
+    return asset.data
 end
 
-startdate = Date(2010)
-enddate = Date(2020)
-intervall = Dates.Day(5)
-
-# dates=floor((enddate - startdate ) / interval)
-# arr = collect(1:dates)
-# map(x -> startdate+x*intervall,arr)
+function value(A::Asset)
+    [last(A.data)["Close"]...][1][2]
+end
 
 
-ex = asset("Test") 
+# function plot(asset::Asset)
+#     Plots.plot(asset.data)
+# end
 
-ex.get_symbol()
-ta = ex.create_random_OHLC(startdate,enddate,intervall)
-plot(ta)
+
+

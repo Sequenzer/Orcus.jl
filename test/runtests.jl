@@ -1,8 +1,8 @@
-using Qt
-using Test
 
+
+using Qt:Qt
 
 @testset "Qt.jl" begin
     # Write your tests here.
-    @test Qt.test_function()=="hello there"
+    @test isa(Qt.Asset("Test"),Main.Qt.Asset)
 end
