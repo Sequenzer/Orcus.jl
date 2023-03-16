@@ -3,7 +3,7 @@ using TimeSeries
 using Dates
 using Plots
 
-include("src/asset.jl")
+include("src/Asset.jl")
 
 abstract type Derivative end
 

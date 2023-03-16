@@ -1,11 +1,9 @@
 
 
 
-
 module Qt
 
-using Qt:Asset
-
+include("Asset.jl")
 # Write your package code here.
 
 function test_function()
