@@ -1,9 +1,7 @@
-using DataFrames
-using TimeSeries
 using Dates
-using Plots
+using UnicodePlots: lineplot
 
-include("src/Asset.jl")
+include("Asset.jl")
 
 abstract type Derivative end
 
@@ -23,14 +21,43 @@ end
 function logReturn(D::Derivative)
     value(D)<=0 ? -Inf : log(value(D)/D.price);
 end
+
+
+"""
+    plot(D::<Derivative)
+
+Plots the payofstructure.
+
+# Examples
+
+A=Asset();
+B=Buy(A,10);
+plot(B)
+"""
 function plot(D::Derivative)
     f=D.structure
     v=uValue(D)
     x=range(v-v/2,v+v/2)
-    plt = Plots.plot(x,f.(x))
-    return plt
+    lineplot(x,f.(x), title=D.underlying.ticker, name=D.name, xlabel="x", ylabel="y")
 end
  
+"""
+    printProps(D::Derivative)
+
+Print all the current properties of the input derivative. 
+
+# Examples
+
+```jldoctest
+A = Asset();
+B = Buy(A,10)
+printProps(B)
+# output
+
+100
+```
+
+"""
 function printProps(D::Derivative)
     if hasproperty(D,:strike) 
         str = D.strike
@@ -51,7 +78,10 @@ function printProps(D::Derivative)
     print(otp)
 end
 
+"""
 
+
+"""
 mutable struct Buy <: Derivative
     underlying::Asset
     structure::Function
@@ -67,11 +97,7 @@ mutable struct Buy <: Derivative
     end
 end
 
-x=Asset("AAPL")
-populate_ohlc(x)
 
-B= Buy(x,10)
-printProps(B)
 
 
 mutable struct Sell <: Derivative
@@ -157,8 +183,8 @@ mutable struct ShortPut <: Derivative
     end
 end
 
-SP=ShortPut(x,100,10)
-printProps(SP)
-B=Buy(x)
-printProps(B)
-plot(SP)
+#SP=ShortPut(x,100,10)
+#printProps(SP)
+#B=Buy(x)
+#printProps(B)
+#plot(SP)

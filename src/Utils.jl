@@ -1,6 +1,15 @@
 
+
+
+IncompleteVector = AbstractVector{<:Union{<:Real, Missing}}
+
+
+
+
+
+
 """
-    randomValue(x::Number,n::Int,prop_func::Function)
+    randomValue(x::Real,n::Int,prop_func::Function)
 
 Generates a Vector of n random values around x based on a propability function.
 
@@ -16,8 +25,8 @@ randomValue(x,n,f)
 ```
 """
     
-function randomValue(x::Number,n::Int,f::Function)
-    arr::Vector{Number}=[x]
+function randomValue(x::Real,n::Int,f::Function)
+    arr::Vector{Real}=[x]
     while (length(arr)<n)
         old = last(arr)
         push!(arr,old+f(old))

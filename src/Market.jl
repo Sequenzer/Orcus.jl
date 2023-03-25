@@ -2,7 +2,7 @@
 
 
 
-include("src/Asset.jl");
+include("Asset.jl");
 
 mutable struct Market 
     data::Dict{String,Asset}
@@ -25,10 +25,9 @@ end
 
 
 ##Tests
-x=Asset("AAPL")
-populate_ohlc(x)
+x=Asset();
+y=Asset();
     
-y=Asset("GOOG")
-populate_ohlc(y)
 
 m=Market([x,y])
+m.data

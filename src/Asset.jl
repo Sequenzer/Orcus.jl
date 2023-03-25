@@ -3,7 +3,7 @@ using Random
 using Statistics
 
 
-include("src/Utils.jl");
+include("Utils.jl");
 
 export Asset, simple_average, randOHLC, populateOHLC,  value
 
@@ -28,7 +28,7 @@ x.ticker
 mutable struct Asset
     ticker::String  
     interval::StepRange{Date, <:Period}
-    data::Dict{String,Vector{<:Union{Missing,Number}}}
+    data::Dict{String,IncompleteVector}
     function Asset(
         ticker::String;
         interval::StepRange{Date, <:Period}=Date(2010):Dates.Day(5):Date(2020),
@@ -46,10 +46,65 @@ mutable struct Asset
         this=new()
         this.ticker = randstring('A':'Z', 4)
         this.interval=Date(2010):Dates.Day(5):Date(2020)
-        this.data = Dict{String,Vector{<:Union{Missing,Number}}}()
+        this.data = Dict{String,IncompleteVector}()
         populateOHLC(this)
         return this 
     end
+end
+
+"""
+    randOHLC(base::Real,n::Int,precision::Int)
+
+The randOHLC function generates n many OHLC datapoints. The precision argument is the number of random trades the values are based on. 
+
+```jldoctest
+
+Random.seed!(1234)
+prop_func=x->rand()-0.5
+randOHLC(10,3,prop_func,5)
+
+# Output
+
+Dict{String, Vector{Real}} with 4 entries:
+  "Low"   => [9.59361, 9.73523, 10.4781]
+  "Close" => [9.98786, 10.4839, 11.0327]
+  "Open"  => [10, 9.98786, 10.4839]
+  "High"  => [10, 10.4839, 11.0327]
+
+```
+"""
+function randOHLC(
+    base::Real,
+    n::Int,
+    f::Function,
+    precision::Int)
+
+    ohlc=Dict{String,IncompleteVector}(
+    "Open"=>Union{<:Real,Missing}[],
+    "High"=>Union{<:Real,Missing}[],
+    "Low"=>Union{<:Real,Missing}[],
+    "Close"=>Union{<:Real,Missing}[])
+
+    lst=base
+    while (length(ohlc["Close"])<n)
+        arr=randomValue(lst,precision,f)
+        sortedarr=sort(arr)
+        push!(ohlc["Open"],first(arr))
+        push!(ohlc["High"],last(sortedarr))
+        push!(ohlc["Low"],first(sortedarr))
+        push!(ohlc["Close"],last(arr))
+    end
+    return ohlc
+end
+
+function populateOHLC(
+    asset::Asset,
+    prop_func::Function=(x->rand()-0.5);
+    start::Real=100,
+    precision::Int=10)
+    n = length(asset.interval)
+    asset.data= randOHLC(start,n,prop_func,precision)
+    return asset.data
 end
 
 """
@@ -101,7 +156,7 @@ function calculateIndicator(Ind::IndicatorGenerator, asset::Asset, data_key::Str
     num_points = length(data)
 
     # Initialize the indicator vector with missing data values
-    indicator = Vector{Union{Missing,Number}}(missing, num_points)
+    indicator = IncompleteVector(missing, num_points)
 
     # Calculate the indicator for non-empty data points
         for i in Ind.window:num_points
@@ -123,62 +178,6 @@ function applyIndicator(
     
 end
 
-"""
-    randOHLC(base::Number,n::Int,precision::Int)
-
-The randOHLC function generates n many OHLC datapoints. The precision argument is the number of random trades the values are based on. 
-
-```jldoctest
-
-Random.seed!(1234)
-prop_func=x->rand()-0.5
-randOHLC(10,3,prop_func,5)
-
-# Output
-
-Dict{String, Vector{Number}} with 4 entries:
-  "Low"   => [9.59361, 9.73523, 10.4781]
-  "Close" => [9.98786, 10.4839, 11.0327]
-  "Open"  => [10, 9.98786, 10.4839]
-  "High"  => [10, 10.4839, 11.0327]
-
-```
-"""
-function randOHLC(
-    base::Number,
-    n::Int,
-    f::Function,
-    precision::Int)
-
-    ohlc=Dict{String,Vector{Number}}(
-    "Open"=>[],
-    "High"=>[],
-    "Low"=>[],
-    "Close"=>[])
-
-    lst=base
-    while (length(ohlc["Close"])<n)
-        arr=randomValue(lst,precision,f)
-        sortedarr=sort(arr)
-        lst=last(arr)
-        push!(ohlc["Open"],first(arr))
-        push!(ohlc["High"],last(sortedarr))
-        push!(ohlc["Low"],first(sortedarr))
-        push!(ohlc["Close"],last(arr))
-    end
-    return ohlc
-end
-
-function populateOHLC(
-    asset::Asset,
-    prop_func::Function=(x->rand()-0.5);
-    start::Number=100,
-    precision::Int=10)
-
-    n = length(asset.interval)
-    asset.data= randOHLC(start,n,prop_func,precision)
-    return asset.data
-end
 
 
 """
@@ -215,7 +214,7 @@ Get the closing price of an asset for a specific date.
 - If the price data is not available for the specified date, returns `nothing`.
 
 """
-function getPrice(asset::Asset, date::Date)::Union{Nothing,Number}
+function getPrice(asset::Asset, date::Date)::Union{Nothing,Real}
     if haskey(asset.data, "Close")
         dates = keys(asset.data["Close"])
         if date in dates
@@ -228,7 +227,7 @@ function getPrice(asset::Asset, date::Date)::Union{Nothing,Number}
     end
 end
 
-simple_average(data::Vector{<:Union{Missing,Number}})=mean(data)
+simple_average(data::IncompleteVector)=mean(skipmissing(data))
 
 """
 simple_average([1,missing,3,4])
@@ -243,8 +242,8 @@ x.data
 """
 
 
-function getData(A::Asset,t::Date)::Dict{String,Vector{<:Union{Missing,Number}}}
-    res=Dict{String,Vector{<:Union{Missing,Number}}}()
+function getDataUntil(A::Asset,t::Date)::Dict{String,IncompleteVector}
+    res=Dict{String,IncompleteVector}()
     idx = findfirst(A.interval.==t)
     if (idx !== nothing)
         for (k,v) in A.data
@@ -257,10 +256,25 @@ function getData(A::Asset,t::Date)::Dict{String,Vector{<:Union{Missing,Number}}}
 end
 
 
-x=Asset();
-length(x.data["Close"])
-d=Date(2012,1,
-findfirst(x.interval.==d)
-last(x.interval)
-sum(x.interval.==d)
-length(getData(x,d)["Close"])
+#x=Asset();
+#length(x.data["Close"])
+#d=Date(2012,1,1)
+#findfirst(x.interval.==d)
+#last(x.interval)
+#sum(x.interval.==d)
+#length(getData(x,d)["Close"])
+function delta(data::IncompleteVector)
+    return last(data)-first(data)
+end
+    
+function relativeStrengthIndex(data::IncompleteVector)
+    res = sum(skipmissing(data))
+    delt = IndicatorGenerator(delta,2)
+    changes = calculateIndicator
+    ##Indicator Generator should be independent of Asset.
+    return res 
+end
+
+
+
+#relativeStrengthIndex([1,missing,2,-3,5])
