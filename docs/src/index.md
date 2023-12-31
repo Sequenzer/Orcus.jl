@@ -1,4 +1,17 @@
+# Example.jl Documentation
+
+```@contents
+```
+
+## Functions
+
 ```@docs
 Asset
-value
+Derivative
+plot
+```
+
+## Index
+
+```@index
 ```

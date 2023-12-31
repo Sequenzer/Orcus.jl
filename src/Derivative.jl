@@ -1,10 +1,31 @@
-using Dates
-using UnicodePlots: lineplot
 
-include("Asset.jl")
+export 
+    Derivative,
+    Buy,
+    Sell,
+    LongCall,
+    LongPut,
+    ShortCall,
+    ShortPut,
+    plot,
+    printProps,
+    uValue,
+    value,
+    absReturn,
+    pctReturn,
+    logReturn
 
+
+
+
+"""
+    Derivative
+
+Abstract type for all derivatives.
+"""
 abstract type Derivative end
 
+Base.show(io::IO,D::Derivative) = print(io,"Derivative of Type '$(D.name)' on $(D.underlying.ticker)")
 
 function uValue(D::Derivative)
     return value(D.underlying)
@@ -26,19 +47,52 @@ end
 """
     plot(D::<Derivative)
 
-Plots the payofstructure.
+Plots the payoffstructure.
 
 # Examples
-
+```jldoctest
+Random.seed!(456);
 A=Asset();
-B=Buy(A,10);
-plot(B)
+LC=LongCall(A,value(A),10);
+plot(LC)
+# output
+
+                       KPGR, Long Call              
+         ┌────────────────────────────────────────┐ 
+      40 │                                        │ 
+         │                                       .│ 
+         │                                      .'│ 
+         │                                     :' │ 
+         │                                   .'   │ 
+         │                                 .:     │ 
+         │                                .'      │ 
+   y     │                              .:'       │ 
+         │                             .'         │ 
+         │                            :'          │ 
+         │                          .'            │ 
+         │                         :              │ 
+         │''''''''''''''''''''''':''''''''''''''''│ 
+         │                     .:'                │ 
+     -10 │.....................'                  │ 
+         └────────────────────────────────────────┘ 
+          44                                   133  
+                              x                     
+
+```
+
 """
 function plot(D::Derivative)
     f=D.structure
     v=uValue(D)
     x=range(v-v/2,v+v/2)
-    lineplot(x,f.(x), title=D.underlying.ticker, name=D.name, xlabel="x", ylabel="y")
+    lineplot(
+        x,
+        f.(x).-D.price,
+        xlim= floor.(extrema(x)),
+        title=D.underlying.ticker*", "*D.name,
+        canvas=DotCanvas,
+        xlabel="x",
+        ylabel="y")
 end
  
 """
@@ -49,12 +103,23 @@ Print all the current properties of the input derivative.
 # Examples
 
 ```jldoctest
+Random.seed!(456);
 A = Asset();
-B = Buy(A,10)
+B = Buy(A,10);
 printProps(B)
 # output
 
-100
+========================================
+Assets: KPGR
+Derivative type: Buy
+Underlying value: 100.16749318215984
+Derivative value: 100.16749318215984
+Price paid: 110.16749318215984
+Strike price: None
+Absolute return: -10.0
+Percentage return: -0.09077087724475305
+Log return: -0.09515815632970726
+========================================
 ```
 
 """
@@ -96,7 +161,6 @@ mutable struct Buy <: Derivative
         return this
     end
 end
-
 
 
 
