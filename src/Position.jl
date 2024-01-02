@@ -68,18 +68,25 @@ end
 
 A trade that is the result of closing a position.
 
-```julia
-A = Asset()
-B = Buy(A, 10)
-O = Order(B, 100)
-T = Trade(O)
-cT=Trade(P)
+```jldoctest
+Random.seed!(1234);
+A = Asset();
+B = Buy(A, 10);
+O = Order(B, 100);
+T = Trade(O);
+P = Position(T);
+cT=Trade(P);
 value(cT)
-```
 
+# output 
+
+-11021.778063564074
+
+```
 """
-function Trade(P::Position)
+function Trade(P::Position, date::DateTime=now())
     self = Trade()
+    self.date = date
     self.derivative = P.derivative
     self.volume = -P.trade.volume
     return self
@@ -90,8 +97,8 @@ function requestToClose(P::Position)
     return P
 end
 
-function close(P::Position)
-    T = Trade(P)
+function close(P::Position, date::DateTime=now())
+    T = Trade(P, date)
     P.closed = true
     return T
 end

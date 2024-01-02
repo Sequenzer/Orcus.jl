@@ -26,7 +26,7 @@ asset[date]
 missing
 ```
 """
-AssetData = DefaultOrderedDict{Date, Union{<:Real, Missing}}
+AssetData = DefaultOrderedDict{DateTime, Union{<:Real, Missing}}
 
 
 """

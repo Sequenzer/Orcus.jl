@@ -16,6 +16,7 @@ export
     getDataUntil,
     RSI,
     plot,
+    plot!,
     getIntervals,
     end_date,
     getDomain,
@@ -295,7 +296,7 @@ Get the data of an asset until a specific date.
 ```jldocteat
 Random.seed!(1234);
 A=Asset();
-d=Dates.Date(2012,1,1);
+d=Dates.DateTime(2012,1,1);
 dt = getDataUntil(A,d)
 length(dt["Close"])
 # output
@@ -303,7 +304,7 @@ length(dt["Close"])
 147
 ```
 """
-function getDataUntil(A::Asset, t::Date)::Dict{String,AssetData}
+function getDataUntil(A::Asset, t::DateTime)::Dict{String,AssetData}
     res = Dict{String,AssetData}()
     for (k,v) in A.data
         res[k] = AssetData(missing)
@@ -354,7 +355,7 @@ Cut the data of an asset until a specific date.
 ```jldoctest
 Random.seed!(1234);
 A=Asset();
-d=Dates.Date(2012,1,1);
+d=Dates.DateTime(2012,1,1);
 cutDataUntil!(A,d)
 length(A.data["Close"])
 # output
@@ -362,7 +363,7 @@ length(A.data["Close"])
 147
 ```
 """
-cutDataUntil!(A::Asset, t::Date) = A.data = getDataUntil(A,t)
+cutDataUntil!(A::Asset, t::DateTime) = A.data = getDataUntil(A,t)
 cutDataUntil!(A::Asset, t::Int) = A.data = getDataUntil(A,t)
 
 
@@ -377,7 +378,7 @@ Copy the data of an asset until a specific date.
 ```jldoctest
 Random.seed!(1234);
 A=Asset();
-d=Dates.Date(2012,1,1);
+d=Dates.DateTime(2012,1,1);
 B = cutDataUntil(A,d)
 length(B.data["Close"]) == length(A.data["Close"])
 
@@ -386,7 +387,7 @@ length(B.data["Close"]) == length(A.data["Close"])
 true
 ```
 """
-function cutDataUntil(A::Asset, t::Date)::Asset
+function cutDataUntil(A::Asset, t::DateTime)::Asset
     res = Asset(A.ticker)
     res.data = getDataUntil(A,t)
     return res
@@ -459,8 +460,9 @@ Plot the data of an Asset. # Major ToDo
 
 ```jldoctest
 A = Asset()
-plot(A)
-
+p = plot(A)
+B = Asset()
+plot!(p,B)
 
 ```
 """
@@ -475,14 +477,69 @@ function plot(A::Asset, data_key::String="Close")
             push!(range, x[2])
         end
     end
-    lineplot(
+    return lineplot(
         domain,
         range,
-        canvas=DotCanvas,
         xlabel="Time",
-        ylabel="Value")
+        ylabel="Value",
+        title="$(A.ticker) $(data_key) data"
+        )
 end
 
+function plot!(plt::UnicodePlots.Plot{<:UnicodePlots.Canvas}, A::Asset, data_key::String="Close")
+    println("Plotting Asset: ", A.ticker)
+    data = collect(A.data[data_key])
+    domain = DateTime[]
+    range = Number[]
+    for x in data 
+        if !ismissing(x[2]) 
+            push!(domain, x[1])
+            push!(range, x[2])
+        end
+    end
+    lineplot!(
+        plt,
+        domain,
+        range)
+end
+
+
+maximum_value(A::Asset, data_key::String="Close") = maximum(collect(values(A.data[data_key])))
+minimum_value(A::Asset, data_key::String="Close") = minimum(collect(values(A.data[data_key])))
+
+
+"""
+    plot(assets::Vector{Asset}, data_key::String="Close")
+
+Plot the data of a Vector of Assets. 
+
+```jldoctest
+Random.seed!(1234);
+x=Asset();
+y=Asset();
+plot([x,y])
+
+```
+"""
+
+function plot(assets::Vector{Asset}, data_key::String="Close")
+    max_value = maximum(maximum_value.(assets, data_key))
+    min_value = minimum(minimum_value.(assets, data_key))
+    min_date = minimum(start_date.(assets))
+    max_date = maximum(end_date.(assets))
+    plt = lineplot(DateTime[],Number[];
+        xlabel="Time",
+        ylabel="Value",
+        ylim=(min_value, max_value),
+        xlim=(min_date, max_date),
+        height=20,
+        width=60,
+        title="$(data_key) data");
+    for A in assets 
+        plot!(plt, A, data_key);
+    end
+    return plt
+end
 
 """
     getIntervals(A::Asset)
@@ -520,7 +577,7 @@ start_date(A::Asset) = getIntervals(A)[1]
 Base.length(A::Asset) = end_date(A) - start_date(A)
 
 function getDomain(A::Asset)
-    domain = Vector{Dates.Date}()
+    domain = Vector{DateTime}()
     for (_,index) in A.data
         for (date,_) in index
             push!(domain,date)

@@ -8,6 +8,8 @@ export
     resolvePortfolio!,
     processAll!,
     requestToCloseAll!,
+    cashHistory,
+    toIndex,
     status
 
 
@@ -38,7 +40,6 @@ mutable struct Broker
     portfolio::Vector{Position}
     orders::Vector{Order}
     history::Vector{Trade}
-    date::DateTime
     function Broker(market::Market,cash::Real)
         this = new()
         this.cash = cash
@@ -46,7 +47,6 @@ mutable struct Broker
         this.portfolio = Vector{Position}()
         this.orders = Vector{Order}()
         this.history = Vector{Trade}()
-        this.date = Dates.DateTime(2020,1,1)
         return this
     end
 end
@@ -101,16 +101,17 @@ B.portfolio
 
 """
 function processOrder!(B::Broker,O::Order,check_books::Bool=true)
+    today = end_date(B)
     check_books && (O in B.orders  || error("Order not in Orderbook"))
     isfulfilled(O) && error("Order already fulfilled")
     B.cash - price(O) >= 0 || error("Insufficient funds")
-    B.cash -= fulfill(O,B.date)
+    B.cash -= fulfill(O,today)
     ##Find & Delte Order in Orderbook
     i = findfirst(x -> x== O,B.orders)
     deleteat!(B.orders,i)
 
     ##Add Trade to History
-    T = Trade(O,B.date)
+    T = Trade(O,today)
     push!(B.history,T)
     ##Add Position to Portfolio
     P = Position(T)
@@ -120,14 +121,15 @@ function processOrder!(B::Broker,O::Order,check_books::Bool=true)
 end
 
 function processLastOrder!(B::Broker)
+    today = end_date(B)
     isempty(B.orders) && error("No Orders to process")
     order = last(B.orders)
     B.cash - price(order) >= 0 || error("Insufficient funds")
-    B.cash -= fulfill(order,B.date)
+    B.cash -= fulfill(order,today)
     pop!(B.orders)
 
     ##Add Trade to History
-    T = Trade(order,B.date)
+    T = Trade(order,today)
     push!(B.history,T)
     ##Add Position to Portfolio
     P = Position(T)
@@ -157,11 +159,11 @@ resolvePortfolio!(B)
 function resolvePortfolio!(B::Broker)
     for P in B.portfolio
         if P.requestToClose
-            T = close(P) 
-            price = -value(T) #Negative because we are closing the position
-
-            if B.cash + price >= 0
-                B.cash += price
+            T = close(P, end_date(B)) 
+            val = -value(T) #Negative because we are closing the position
+            T.delta_cash = val
+            if B.cash + val >= 0
+                B.cash += val
                 push!(B.history,T)
             else
                 P.closed = false 
@@ -195,14 +197,16 @@ B.history
 
 """
 function processOrders!(B::Broker)
+    today = end_date(B)
     isempty(B.orders) && return
     order = last(B.orders)
     B.cash - price(order) >= 0 || return
-    B.cash -= fulfill(order,B.date)
+    B.cash -= fulfill(order,today)
     pop!(B.orders)
 
     ##Add Trade to History
-    T = Trade(order,B.date)
+    T = Trade(order,today)
+    T.delta_cash = -price(order)
     push!(B.history,T)
     ##Add Position to Portfolio
     P = Position(T)
@@ -248,7 +252,7 @@ Number of trades: 0
 """
 function status(B::Broker,digits::Int=2)
     otp ="="^40*"\n"*"""
-    Date: $(B.date)
+    Date: $(end_date(B))
     Cash: $(round(B.cash;digits=digits))
     Number of orders: $(length(B.orders))
     Number of positions: $(length(B.portfolio))
@@ -259,13 +263,71 @@ function status(B::Broker,digits::Int=2)
 end
 
 
-
-
-
 function requestToCloseAll!(B::Broker)
     for P in B.portfolio
         requestToClose(P)
     end
     return
 end
+
+    
+function end_date(B::Broker)
+    return end_date(B.market)
+end
+
+
+
+function cashHistory(B::Broker)
+    cash_vector = Tuple{DateTime, Real}[(end_date(B),B.cash)]
+    cash = B.cash
+    for t in reverse(B.history)
+        cash -= t.delta_cash
+        push!(cash_vector,(t.date,cash))
+    end
+    cash_vector = reverse(cash_vector) 
+    return cash_vector
+end
+
+
+
+"""
+
+    toIndex(B::Broker)::Asset
+
+Convert a Broker to an Asset
+
+```jldoctest
+Random.seed!(1234);
+x=Asset();
+y=Asset();
+M=Market([x,y]);
+B = Broker(M,1000);
+BT = Backtest(M,CrossOverStrategy,1000)
+runTest(BT)
+A = toIndex(BT.broker)
+```
+
+"""
+
+
+function toIndex(B::Broker)::Asset
+    A = Asset("Broker")
+    A.data = Dict{String,AssetData}()
+    A.data["Cash"] = AssetData(missing)
+    for (date,cash) in cashHistory(B)
+        A.data["Cash"][date] = cash
+    end
+
+    return A
+end
+
+function plot(B::Broker)
+    plot(toIndex(B),"Cash")
+end
+
+
+
+
+
+
 

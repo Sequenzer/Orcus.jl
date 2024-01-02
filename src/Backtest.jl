@@ -17,11 +17,11 @@ x=Asset();
 y=Asset();
 M=Market([x,y]);
 T = Backtest(M,CrossOverStrategy,1000)
-T.market.data
 runTest(T)
-A output
 
-Backtest of CrossOverStrategy with 1000.0 funds on market comprised of 2 assets.
+# output
+
+Backtest of CrossOverStrategy with 375.71 funds on market comprised of 2 assets.
 
 ```
 """
@@ -72,5 +72,13 @@ Base.show(io::IO,BT::Backtest) = print(io,
 """
 Backtest of $(typeof(BT.strategy)) with $(round(BT.broker.cash;digits=2)) funds on market comprised of $(length(keys(BT.market.data))) assets.
 """)
+
+
+function plot(BT::Backtest)
+    plot(BT.broker)
+end
+
+
+
 
 

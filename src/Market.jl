@@ -134,7 +134,7 @@ Random.seed!(1234);
 x=Asset();
 y=Asset();
 M=Market([x,y]);
-M2=cutDataUntil(M,Dates.Date(2015,1,3))
+M2=cutDataUntil(M,Dates.DateTime(2015,1,3))
 M3=cutDataUntil(M,start_date(M))
 length(M3)
 
@@ -143,7 +143,7 @@ length(M3)
 ```
 """
 
-function cutDataUntil(M::Market,date::Date)
+function cutDataUntil(M::Market,date::DateTime)
     newMarket=Market()
     for (k,v) in M.data
         newMarket.data[k]=cutDataUntil(v,date)
@@ -179,8 +179,8 @@ function cutDataUntil(M::Market,length::Int)
 end
     
 function getDomain(M::Market)
-    domain = Vector{Dates.Date}() 
-    for (k,v) in M.data
+    domain = Vector{DateTime}() 
+    for (_,v) in M.data
         append!(domain,getDomain(v))
     end
     
