@@ -62,6 +62,10 @@ function Base.show(io::IO,M::Market)
     end
 end
 
+Base.getindex(M::Market,ticker::String) = M.data[ticker]
+
+
+
 """
     addAsset!(M::Market,Asset::Asset)
 
@@ -119,7 +123,7 @@ cutDataUntil!(M,Dates.Date(2020,1,3))
 
 ```
 """
-function cutDataUntil!(M::Market,date::Date)
+function cutDataUntil!(M::Market,date::DateTime)
     foreach(x->cutDataUntil!(x,date),values(M.data))
 end
 
@@ -177,6 +181,27 @@ function cutDataUntil(M::Market,length::Int)
     end
     return newMarket
 end
+
+
+
+
+function takeData!(source::Market,target::Market,date::DateTime)
+    for (k,v) in target.data
+        if haskey(source.data,k)
+            takeData!(source.data[k],v,date)
+        end
+    end
+end
+function takeData!(source::Market,target::Market,length::Int)
+    for (k,v) in target.data
+        if haskey(source.data,k)
+            takeData!(source.data[k],v,length)
+        end
+    end
+end
+    
+
+
     
 function getDomain(M::Market)
     domain = Vector{DateTime}() 

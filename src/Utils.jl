@@ -21,6 +21,8 @@ A struct that holds a Dict of Dates and Real values. The default value is Missin
 asset = AssetData(missing)
 date = Dates.Date(2019,1,1)
 asset[date]
+length(asset)
+
 #output
 
 missing

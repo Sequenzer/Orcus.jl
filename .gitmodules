@@ -1,0 +1,3 @@
+[submodule "src/eqt"]
+	path = src/eqt
+	url = git@github.com:Sequenzer/eqt.git

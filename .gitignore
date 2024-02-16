@@ -1,2 +1,9 @@
 /Manifest.toml
 docs/build/
+/qtApp/
+/src/cqt/
+*.so
+*.ts*.so
+*.tstt
+
+

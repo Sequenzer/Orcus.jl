@@ -20,7 +20,10 @@ include("Order.jl")
 include("Trade.jl")
 include("Position.jl")
 include("Broker.jl")
+
 include("Strategy.jl")
+include("Stdlib/Strategies.jl")
+
 include("Backtest.jl")
 
 # Write your package code here.

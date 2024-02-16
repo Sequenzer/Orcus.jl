@@ -23,7 +23,10 @@ export
     start_date,
     cutDataUntil!,
     cutDataUntil,
-    dataToDefaultOrderedDict
+    dataToDefaultOrderedDict,
+    minimum_value,
+    maximum_value
+
 
 
 
@@ -42,6 +45,7 @@ This is an Asset
 ```jldoctest
 x=Asset("AAPL")
 x.ticker
+
 # output
 
 "AAPL"
@@ -53,16 +57,11 @@ mutable struct Asset
     function Asset(
         ticker::String;
         interval::StepRange{Date,<:Period}=Date(2010):Dates.Day(5):Date(2020),
-        prop_func::Union{Nothing,Function}=nothing)
+        prop_func::Function=(x -> rand() - 0.5))
 
         this = new()
         this.ticker = ticker
-        if prop_func !== nothing
-            populateOHLC(this, interval, prop_func)
-        else
-            this.data = Dict{String,AssetData}()
-            populateOHLC(this)
-        end
+        populateOHLC(this, interval, prop_func)
         return this
     end
     function Asset()
@@ -75,8 +74,7 @@ mutable struct Asset
 end
 
 Base.show(io::IO,A::Asset) = print(io,"Asset '$(A.ticker)' with $(keys(A.data) |> length) datasets" )
-
-
+Base.getindex(A::Asset, key::String) = A.data[key]
 
 """
     randOHLC(base::Real,n::Int,precision::Int)
@@ -346,6 +344,20 @@ function getDataUntil(A::Asset, t::Int)::Dict{String,AssetData}
     end
     return res
 end
+
+
+
+
+function takeData!(source::Asset, target::Asset, t::Int)
+    target.data = getDataUntil(source,t)
+end
+function takeData!(source::Asset, target::Asset, t::DateTime)
+    target.data = getDataUntil(source,t)
+end
+
+
+
+
     
 """
     cutDataUntil!(A::Asset, t::Date)
@@ -504,8 +516,8 @@ function plot!(plt::UnicodePlots.Plot{<:UnicodePlots.Canvas}, A::Asset, data_key
 end
 
 
-maximum_value(A::Asset, data_key::String="Close") = maximum(collect(values(A.data[data_key])))
-minimum_value(A::Asset, data_key::String="Close") = minimum(collect(values(A.data[data_key])))
+maximum_value(A::Asset, data_key::String="Close") = maximum(collect(values(A[data_key])))
+minimum_value(A::Asset, data_key::String="Close") = minimum(collect(values(A[data_key])))
 
 
 """

@@ -1,1 +1,0 @@
-julia ../test/main.jl

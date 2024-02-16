@@ -4,6 +4,5 @@
     asset = AssetData(missing)
     date = Date(2019,1,1)
     @test ismissing(asset[date])
-
 end
 

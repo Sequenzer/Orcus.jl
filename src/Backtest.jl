@@ -25,13 +25,13 @@ Backtest of CrossOverStrategy with 375.71 funds on market comprised of 2 assets.
 
 ```
 """
-mutable struct Backtest
+mutable struct Backtest{T<:Strategy}
     market::Market
     broker::Broker
-    strategy::Strategy
+    strategy::T
     completed::Bool
     function Backtest(market::Market, strategy::Type, cash::Real=1000)
-        this = new()
+        this = new{strategy}()
         this.market = market
         this.broker = Broker(market,cash)
         this.strategy = strategy(this.broker);
@@ -55,10 +55,11 @@ function runTest(BT::Backtest)
     # Initialize strategy
     init(BT.strategy)
     market = cutDataUntil(BT.market,end_date(BT.market))
+    BT.broker.market = market
+    BT.strategy.market = market 
     for i in getDomain(market)
-        BT.broker.market =  cutDataUntil(market,i)
-        BT.strategy.market = BT.broker.market
-        #println(length(BT.broker.market))
+        takeData!(BT.market,market,i)
+       #println(length(BT.broker.market))
         processDay!(BT)
     end
     BT.completed = true
