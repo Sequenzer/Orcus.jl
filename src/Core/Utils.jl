@@ -1,8 +1,10 @@
 #Exports
 export AssetData,
     AssetSeries,
-    randomValue
-
+    randomValue,
+    DataSeries,
+    DataPoint,
+    data_series
 
 
 
@@ -80,4 +82,58 @@ function randomValue(x::Real,n::Int,f::Function)
     end
     return arr
 end
+
+
+"""
+    DataSeries = Vector{ Union{ DataPoint, Missing}}
+
+A struct that holds a Vector of DataPoints. The DataPoint is a Vector of Union{<:Number, Missing}.
+
+```jldoctests
+dp1 = DataPoint([1,2,missing,4,5])
+dp2 = DataPoint([1,2,missing,4,missing,missing])
+ds = data_series([dp1,missing,dp2])
+
+"""
+DataPoint = Vector{ Union{<:Number, Missing}}
+
+DataSeries = Matrix{ Union{ <:Number, Missing}}
+
+
+function data_series(x::Vector{<:Union{DataPoint, Missing}})
+    hght = maximum([length(i) for i in x if !ismissing(i)])
+    lgth = length(x)
+    arr = DataSeries(fill(missing, (lgth, hght)))
+    for i in eachindex(x)
+        ismissing(x[i]) && continue
+        for j in eachindex(x[i])
+            arr[i,j] = x[i][j]
+        end
+    end
+    return arr
+end
+    
+"""
+    capture_io(ex)
+
+Capture the printed output of an expression. For testing purposes.
+
+"""
+macro capture_io(ex)
+    io = IOBuffer()
+
+    old_stdout = stdout
+    rd, wr = redirect_stdout()
+
+    eval(ex)
+
+    redirect_stdout(old_stdout)
+    close(wr)
+    write(io, read(rd))
+    close(rd)
+
+    return String(take!(io))
+end
+
+
 

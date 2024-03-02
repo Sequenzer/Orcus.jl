@@ -1,6 +1,7 @@
 
 export 
     Derivative,
+    @generateDerivative,
     Buy,
     Sell,
     LongCall,
@@ -11,6 +12,7 @@ export
     printProps,
     uValue,
     value,
+    name,
     absReturn,
     pctReturn,
     logReturn
@@ -25,7 +27,7 @@ Abstract type for all derivatives.
 """
 abstract type Derivative end
 
-Base.show(io::IO,D::Derivative) = print(io,"Derivative of Type '$(D.name)' on $(D.underlying.ticker)")
+Base.show(io::IO,D::Derivative) = print(io,"Derivative of Type '$(name(D))' on $(D.underlying.ticker)")
 
 function uValue(D::Derivative)
     return value(D.underlying)
@@ -36,13 +38,14 @@ end
 function absReturn(D::Derivative)
     return D.structure(uValue(D)-D.price)
 end
-function pctReturn(D::Derivative)
+function pctReturn(D::Derivative) ##Check that this is correct
     return absReturn(D)/D.price
 end
 function logReturn(D::Derivative)
     value(D)<=0 ? -Inf : log(value(D)/D.price);
 end
-
+name(D::Derivative) = String(Symbol(typeof(D)))
+price(D::Derivative) = D.price
 
 """
     plot(D::<Derivative)
@@ -52,7 +55,7 @@ Plots the payoffstructure.
 # Examples
 ```jldoctest
 Random.seed!(456);
-A=Asset();
+A=asset();
 LC=LongCall(A,value(A),10);
 plot(LC)
 # output
@@ -89,7 +92,7 @@ function plot(D::Derivative)
         x,
         f.(x).-D.price,
         xlim= floor.(extrema(x)),
-        title=D.underlying.ticker*", "*D.name,
+        title=D.underlying.ticker*", "*name(D),
         canvas=DotCanvas,
         xlabel="x",
         ylabel="y")
@@ -104,7 +107,7 @@ Print all the current properties of the input derivative.
 
 ```jldoctest
 Random.seed!(456);
-A = Asset();
+A = asset();
 B = Buy(A,10);
 printProps(B)
 # output
@@ -131,7 +134,7 @@ function printProps(D::Derivative)
     end
     otp ="="^40*"\n"*"""
     Assets: $(D.underlying.ticker)
-    Derivative type: $(D.name)
+    Derivative type: $(D)
     Underlying value: $(uValue(D))
     Derivative value: $(value(D))
     Price paid: $(D.price)
@@ -144,19 +147,56 @@ function printProps(D::Derivative)
 end
 
 """
+    @generateDerivative(Name::Symbol, structure::Expr, price_func::Expr)
+
+Macro to generate a new derivative type.
 
 
+# Examples
+
+```jldoctest
+@generateDerivative NewBuy x->x (val,premium)->val+premium
+
+x = asset()
+name(NewBuy(x,10))
+
+# output
+
+"NewBuy"
+```
 """
+macro generateDerivative(Name::Symbol, structure::Expr, price_func::Expr)
+    isdefined(Main,Name) && error("Symbol \"$(Name)\" is already defined")
+
+    strct = quote
+        mutable struct $Name <: Derivative
+            underlying::Asset
+            structure::Function
+            price::Number
+            function $Name(underlying::Asset,premium::Number=0)
+                this = new()
+                this.underlying=underlying
+                this.structure = $structure
+                this.price = $price_func(value(underlying),premium) 
+                return this
+            end
+        end
+    end
+    return eval(quote
+        export $Name
+    
+        $strct
+    end)
+end
+
 mutable struct Buy <: Derivative
     underlying::Asset
     structure::Function
-    name::String
     price::Number
     function Buy(underlying::Asset,premium::Number=0)
         this = new()
         this.underlying=underlying
         this.structure = x->x
-        this.name = "Buy"
         this.price = value(underlying) + premium 
         return this
     end
@@ -167,13 +207,11 @@ end
 mutable struct Sell <: Derivative
     underlying::Asset
     structure::Function
-    name::String
     price::Number
     function Sell(underlying::Asset,premium::Number=0)
         this = new()
         this.underlying=underlying
         this.structure = x->-x
-        this.name = "Sell"
         this.price = -value(underlying) + premium 
         return this
     end
@@ -182,14 +220,12 @@ end
 mutable struct LongCall <: Derivative
     underlying::Asset
     structure::Function
-    name::String
     price::Number
     strike::Number
     function LongCall(underlying::Asset,strike::Number,premium::Number=0)
         this = new()
         this.underlying=underlying
         this.structure = x-> max(x-strike,0)
-        this.name = "Long Call"
         this.price = premium 
         this.strike = strike
         return this
@@ -199,14 +235,12 @@ end
 mutable struct LongPut <: Derivative
     underlying::Asset
     structure::Function
-    name::String
     price::Number
     strike::Number
     function LongPut(underlying::Asset,strike::Number,premium::Number=0)
         this = new()
         this.underlying=underlying
         this.structure = x-> max(-x+strike,0)
-        this.name = "Long Put"
         this.price = premium 
         this.strike = strike
         return this
@@ -216,14 +250,12 @@ end
 mutable struct ShortCall <: Derivative
     underlying::Asset
     structure::Function
-    name::String
     price::Number
     strike::Number
     function ShortCall(underlying::Asset,strike::Number,premium::Number=0)
         this = new()
         this.underlying=underlying
         this.structure = x-> min(-x+strike,0)
-        this.name = "Short Call"
         this.price = -premium 
         this.strike = strike
         return this
@@ -233,22 +265,14 @@ end
 mutable struct ShortPut <: Derivative
     underlying::Asset
     structure::Function
-    name::String
     price::Number
     strike::Number
     function ShortPut(underlying::Asset,strike::Number,premium::Number=0)
         this = new()
         this.underlying=underlying
         this.structure = x-> min(x-strike,0)
-        this.name = "Short Put"
         this.price = -premium 
         this.strike = strike
         return this
     end
 end
-
-#SP=ShortPut(x,100,10)
-#printProps(SP)
-#B=Buy(x)
-#printProps(B)
-#plot(SP)

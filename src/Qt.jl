@@ -13,8 +13,11 @@ export
     Random, 
     Statistics
 
-include("Asset.jl")
-include("Derivative.jl")
+include("Core/Utils.jl")
+include("Core/Indicator.jl")
+include("Core/Asset.jl")
+include("Core/Derivative.jl")
+
 include("Market.jl")
 include("Order.jl")
 include("Trade.jl")

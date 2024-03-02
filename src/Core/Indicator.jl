@@ -1,0 +1,51 @@
+
+export IndicatorGenerator,
+    indicator_generator,
+    simple_average
+
+
+"""
+    IndicatorGenerator(f::Function,window::Int)
+
+# Fields
+- f: The function that will calculate the Indicator,
+- window: The window size of the data that will be used to calculate the Indicator.
+
+# Example
+```jldoctest
+SMA10=indicator_generator(simple_average,10)
+SMA10.window
+
+# output
+10
+```
+"""
+mutable struct IndicatorGenerator
+    calc_func::Function
+    window::Int
+
+    function IndicatorGenerator(
+        calc_func::Function,
+        window::Int=1
+    )
+        this = new()
+        this.calc_func = calc_func
+        this.window = window
+        return this
+    end
+
+end
+
+indicator_generator(calc_func::Function, window::Int=1) = IndicatorGenerator(calc_func, window)
+
+
+
+
+"""
+
+simple_average([1,missing,3,4])
+
+"""
+simple_average(data::DataPoint)::Real = mean(skipmissing(data))
+
+

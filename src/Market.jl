@@ -15,11 +15,10 @@ A structure comprised of all Assets
 
 ```jldoctest
 Random.seed!(1234);
-x=Asset();
-y=Asset();
+x=asset();
+y=asset();
 M=Market([x,y]);
 isa(M,Market)
-
 # output
 
 true
@@ -34,6 +33,7 @@ mutable struct Market
         foreach(x->this.data[x.ticker]=x,assets)
         return this
     end
+    Market(asset::Asset) = Market([asset])
     Market() = new(Dict{String,Asset}())
 end
 
@@ -53,7 +53,7 @@ length(M.data)
 3
 ```
 """
-Market(n_Assets::Int) = Market([Asset() for i in 1:n_Assets])
+Market(n_Assets::Int) = Market([asset() for i in 1:n_Assets])
 
 function Base.show(io::IO,M::Market) 
     print(io,"Market with $(length(M.data)) Assets: \n") 
@@ -74,7 +74,7 @@ Add an  Assets to the Market
 # Example 
 
 M=Market(Asset[]);
-addAsset!(M,Asset())
+addAsset!(M,asset())
 M.data
 """
 function addAsset!(M::Market,A::Asset)
