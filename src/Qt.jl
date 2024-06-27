@@ -17,15 +17,15 @@ include("Core/Utils.jl")
 include("Core/Indicator.jl")
 include("Core/Asset.jl")
 include("Core/Derivative.jl")
+include("Core/Market.jl")
+include("Core/Order.jl")
+include("Core/Trade.jl")
+include("Core/Position.jl")
 
-include("Market.jl")
-include("Order.jl")
-include("Trade.jl")
-include("Position.jl")
 include("Broker.jl")
 
 include("Strategy.jl")
-include("Stdlib/Strategies.jl")
+include("Lib/Strategies.jl")
 
 include("Backtest.jl")
 

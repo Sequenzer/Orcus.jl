@@ -10,8 +10,8 @@ export
 
 
 """
-```julia
-A = Asset()
+```jldoctest
+A = asset()
 B = Buy(A, 10)
 O = Order(B, 100)
 T = Trade(O)
@@ -35,8 +35,8 @@ mutable struct Position
 end
 
 Base.show(io::IO, P::Position) = P.closed ? 
-print(io, "A closed position of $(volume(P)) $(P.derivative.name) on $(P.derivative.underlying.ticker)") : 
-    print(io, "A open position of $(volume(P)) $(P.derivative.name) on $(P.derivative.underlying.ticker)")
+print(io, "A closed position of $(volume(P)) $(name(P.derivative)) on $(P.derivative.underlying.ticker)") : 
+print(io, "A open position of $(volume(P)) $(name(P.derivative)) on $(P.derivative.underlying.ticker)")
 
 
 
@@ -70,21 +70,20 @@ A trade that is the result of closing a position.
 
 ```jldoctest
 Random.seed!(1234);
-A = Asset();
+A = asset();
 B = Buy(A, 10);
 O = Order(B, 100);
 T = Trade(O);
 P = Position(T);
 cT=Trade(P);
 value(cT)
-
 # output 
 
 -11021.778063564074
 
 ```
 """
-function Trade(P::Position, date::DateTime=now())
+function Trade(P::Position, date::Int=length(P.derivative.underlying))
     self = Trade()
     self.date = date
     self.derivative = P.derivative
@@ -97,7 +96,7 @@ function requestToClose(P::Position)
     return P
 end
 
-function close(P::Position, date::DateTime=now())
+function close(P::Position, date::DateTime=length(P.derivative.underlying))
     T = Trade(P, date)
     P.closed = true
     return T

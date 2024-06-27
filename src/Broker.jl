@@ -1,6 +1,7 @@
 
 export 
     Broker,
+    broker,
     placeOrder!,
     processOrder!,
     processLastOrder!,
@@ -24,8 +25,8 @@ The Order executing Unit in the System.
 
 ```jldoctest
 Random.seed!(1234);
-x=Asset();
-y=Asset();
+x=asset();
+y=asset();
 M=Market([x,y]);
 B = Broker(M,1000);
 isa(B,Broker)
@@ -51,9 +52,13 @@ mutable struct Broker
     end
 end
 
-function Broker(n_Assets::Int,cash::Real)
-    M=Market(Asset[]);
-    foreach(x->addAsset!(M,Asset()),1:n_Assets)
+broker(market::Market,cash::Real) = Broker(market,cash)
+
+
+
+function broker(n_Assets::Int,cash::Real)
+    M=market();
+    foreach(x->addAsset!(M,asset()),1:n_Assets)
     return Broker(M,cash)
 end
 
@@ -68,7 +73,7 @@ Place an Order in the Broker's Orderbook
 
 ```jldoctest
 Random.seed!(1234);
-B = Broker(3,1000);
+B = broker(3,1000);
 A = B.market.data[collect(keys(B.market.data))[2]]
 O = Order(Buy(A,10))
 placeOrder!(B,O)

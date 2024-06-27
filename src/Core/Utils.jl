@@ -99,7 +99,6 @@ DataPoint = Vector{ Union{<:Number, Missing}}
 
 DataSeries = Matrix{ Union{ <:Number, Missing}}
 
-
 function data_series(x::Vector{<:Union{DataPoint, Missing}})
     hght = maximum([length(i) for i in x if !ismissing(i)])
     lgth = length(x)
@@ -113,27 +112,3 @@ function data_series(x::Vector{<:Union{DataPoint, Missing}})
     return arr
 end
     
-"""
-    capture_io(ex)
-
-Capture the printed output of an expression. For testing purposes.
-
-"""
-macro capture_io(ex)
-    io = IOBuffer()
-
-    old_stdout = stdout
-    rd, wr = redirect_stdout()
-
-    eval(ex)
-
-    redirect_stdout(old_stdout)
-    close(wr)
-    write(io, read(rd))
-    close(rd)
-
-    return String(take!(io))
-end
-
-
-

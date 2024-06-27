@@ -1,14 +1,11 @@
-
 @testset verbose=true "Asset" begin 
-@testset verbose=true "basic" begin
+@testset verbose=false "core" begin
     @testset "constructor" begin
         dp1 = DataPoint([1,2,missing,4,5])
         dp2 = DataPoint([1,2,missing,4,missing,missing])
         ds = data_series([dp1,missing,dp2])
 
         @test isa(asset("AAPL",ds,["1","2","3"]),Asset)
-
-        
     end
     @testset "constant" begin
         ticker = "TSTS" 

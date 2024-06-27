@@ -3,6 +3,7 @@ export
     Order,
     price,
     fulfill,
+    volume,
     isfulfilled
 
 
@@ -12,7 +13,7 @@ export
 A Order that has been fulfilled.
 
 ```jldoctest
-A=Asset();
+A=asset();
 B=Buy(A,10);
 O=Order(B);
 O.fulfilled
@@ -25,7 +26,7 @@ mutable struct Order
     derivative::Derivative
     volume::Real
     fulfilled::Bool
-    fulfillment_date::DateTime
+    fulfillment_date::Int
 
     function Order(derivative::Derivative, volume::Real=1)
         this = new();
@@ -36,8 +37,10 @@ mutable struct Order
     end
 end
 
-Base.show(io::IO,O::Order) = print(io,"Order for $(O.volume) $(O.derivative.name) on $(O.derivative.underlying.ticker)")
+Base.show(io::IO,O::Order) = print(io,"Order for $(O.volume) $(name(O.derivative)) on $(O.derivative.underlying.ticker)")
 
+
+volume(order::Order) = order.volume
 
 """
     price(order::Order,date::DateTime=now()) 
@@ -46,7 +49,7 @@ The price of a placed Order, can be negative.
 
 ```jldoctest
 Random.seed!(1234);
-A=Asset();
+A=asset();
 B=Buy(A,10);
 O=Order(B,10);
 price(O)
@@ -55,7 +58,7 @@ price(O)
 1080.1689673025153
 ```
 """
-price(order::Order) = order.derivative.price * order.volume 
+price(order::Order) = price(order.derivative) * volume(order)
 
 
 """    
@@ -65,16 +68,16 @@ Fulfill an Order, returns the price of the Order.
 
 ```jldoctest
 Random.seed!(1234);
-A=Asset();
+A=asset();
 B=Buy(A,10);
 O=Order(B,10);
-fulfill(O,Dates.DateTime(2020,1,1))
+fulfill(O,100)
 # output
 
 1202.1778063564075
 ```
 """
-function fulfill(order::Order,date::DateTime=now())
+function fulfill(order::Order,date::Int=length(order.derivative.underlying))
     order.fulfilled = true
     order.fulfillment_date = date
     return price(order) 
@@ -88,7 +91,7 @@ Returns true if the Order has been fulfilled.
 
 ```jldoctest
 Random.seed!(1234);
-A=Asset();
+A=asset();
 B=Buy(A,10);
 O=Order(B,10);
 isfulfilled(O)

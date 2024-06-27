@@ -11,7 +11,7 @@ export
 
 ```jldoctest
 Random.seed!(1234);
-A = Asset();
+A = asset();
 B = Buy(A, 10);
 O = Order(B, 100);
 T = Trade(O);
@@ -26,9 +26,9 @@ value(T)
 mutable struct Trade
     derivative::Derivative
     volume::Real
-    date::DateTime
+    date::Int
     delta_cash::Real
-    function Trade(O::Order, date::DateTime=now())
+    function Trade(O::Order, date::Int=length(O.derivative.underlying))
         self = new()
         self.derivative = O.derivative
         self.volume = O.volume
@@ -41,7 +41,7 @@ mutable struct Trade
 end
 
 
-Base.show(io::IO, T::Trade) = print(io, "A $(T.derivative.underlying.ticker) trade of $(T.volume) $(T.derivative.name) on $(T.date)")
+Base.show(io::IO, T::Trade) = print(io, "A $(T.derivative.underlying.ticker) trade of $(T.volume) $(name(T.derivative)) on $(T.date)")
 
 value(T::Trade) = T.volume * value(T.derivative)
 price(T::Trade) = T.volume * T.derivative.price

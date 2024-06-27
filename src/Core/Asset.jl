@@ -1,10 +1,11 @@
 
-import Base: getindex, setindex!, length, show, size
+import Base: getindex, setindex!, length, show, size, names
 
 
 export Asset,
     asset,
     height,
+    data,
     n_datasets,
     randOHLC,
     calculate_indicator,
@@ -93,10 +94,18 @@ end
 
 
 
+data(A::Asset) = A.data
 
 
 Base.show(io::IO,A::Asset) = print(io,"Asset '$(A.ticker)' with $(n_datasets(A)) datasets" )
 Base.getindex(A::Asset, key1::Int, key2::Int) = A.data[key1,key2]
+Base.getindex(A::Asset, key1::Int, ::Colon) = A.data[key1,:]
+Base.getindex(A::Asset, ::Colon, key2::Int) = A.data[:,key2]
+Base.getindex(A::Asset, key::String, ::Colon) = getindex(A,key)
+Base.getindex(A::Asset, key::String, key2::Int) = getindex(A,key)[key2]
+Base.getindex(A::Asset, ::Colon, ::Colon) = A.data
+Base.names(A::Asset) = A.data_id
+
 
 function Base.getindex(A::Asset, key::String)
     for (j, id) in enumerate(A.data_id)
@@ -348,6 +357,11 @@ function value(A::Asset, data_key::String="Close")
     @assert length(A) > 0 "The Asset has no data"
     first(Iterators.reverse((skipmissing(A[data_key]))))
 end
+
+function get_data(A::Asset, i::Int)
+    A.data[i,:]
+end
+
 
 
 

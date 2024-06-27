@@ -1,6 +1,6 @@
 @testset verbose=true "Derivative" begin 
-@testset verbose=true "basic" begin
-    @testset "core_functions" begin
+@testset verbose=true "core" begin
+    @testset "core.functions" begin
         ticker = "TSTS" 
         i = 1:1:100
         prp_func = (x)->0
