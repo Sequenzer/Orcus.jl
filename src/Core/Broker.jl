@@ -18,7 +18,7 @@ export
 
 """
 
-    Market(cash::Real,market::Market)
+    Broker(cash::Real,market::Market)
 
 The Order executing Unit in the System.
 
@@ -95,7 +95,7 @@ Process an Order in the Broker's Orderbook
 
 ```jldoctest
 Random.seed!(1234);
-B = Broker(3,1000);
+B = broker(3,1000);
 A = B.market.data[collect(keys(B.market.data))[2]]
 O = Order(Buy(A,10))
 placeOrder!(B,O)
@@ -106,7 +106,7 @@ B.portfolio
 
 """
 function processOrder!(B::Broker,O::Order,check_books::Bool=true)
-    today = end_date(B)
+    today = length(B)
     check_books && (O in B.orders  || error("Order not in Orderbook"))
     isfulfilled(O) && error("Order already fulfilled")
     B.cash - price(O) >= 0 || error("Insufficient funds")
@@ -126,7 +126,7 @@ function processOrder!(B::Broker,O::Order,check_books::Bool=true)
 end
 
 function processLastOrder!(B::Broker)
-    today = end_date(B)
+    today = length(B)
     isempty(B.orders) && error("No Orders to process")
     order = last(B.orders)
     B.cash - price(order) >= 0 || error("Insufficient funds")
@@ -151,20 +151,26 @@ Resolve the Portfolio of the Broker, i.e. close all positions that have a reques
 
 ```jldoctest
 Random.seed!(1234);
-B = Broker(3,1000);
-A = B.market.data[collect(keys(B.market.data))[2]]
+B = broker(3,1000);
+A = B.market.data[collect(keys(B.market.data))[2]] #Maybe write a getIndex for that
 O = Order(Sell(A,10))
 placeOrder!(B,O)
 processOrder!(B,O)
 requestToClose(B.portfolio[1])
 resolvePortfolio!(B)
+B.portfolio
+length(B.history)
+
+# output
+
+2
 ```
 
 """
 function resolvePortfolio!(B::Broker)
     for P in B.portfolio
         if P.requestToClose
-            T = close(P, end_date(B)) 
+            T = close(P, length(B)) 
             val = -value(T) #Negative because we are closing the position
             T.delta_cash = val
             if B.cash + val >= 0
@@ -197,12 +203,16 @@ A = B.market.data[collect(keys(B.market.data))[2]]
 O = Order(Buy(A,10))
 placeOrder!(B,O)
 processOrders!(B)
-B.history
-```
+length(B.history)
 
+# output
+
+1
+
+```
 """
 function processOrders!(B::Broker)
-    today = end_date(B)
+    today = length(B)
     isempty(B.orders) && return
     order = last(B.orders)
     B.cash - price(order) >= 0 || return
@@ -238,16 +248,16 @@ Print the status of the Broker
 
 ```jldoctest
 Random.seed!(1234);
-x=Asset();
-y=Asset();
-M=Market([x,y]);
-B = Broker(M,1000);
+x=asset();
+y=asset();
+M=market([x,y]);
+B = broker(M,1000);
 status(B)
 
 # output
 
 ========================================
-Date: 2020-01-01T00:00:00
+Date: 3651
 Cash: 1000.0
 Number of orders: 0
 Number of positions: 0
@@ -257,7 +267,7 @@ Number of trades: 0
 """
 function status(B::Broker,digits::Int=2)
     otp ="="^40*"\n"*"""
-    Date: $(end_date(B))
+    Date: $(length(B))
     Cash: $(round(B.cash;digits=digits))
     Number of orders: $(length(B.orders))
     Number of positions: $(length(B.portfolio))
@@ -276,14 +286,14 @@ function requestToCloseAll!(B::Broker)
 end
 
     
-function end_date(B::Broker)
-    return end_date(B.market)
-end
+
+
+length(B::Broker) = length(B.market)
 
 
 
 function cashHistory(B::Broker)
-    cash_vector = Tuple{DateTime, Real}[(end_date(B),B.cash)]
+    cash_vector = Tuple{DateTime, Real}[(length(B),B.cash)]
     cash = B.cash
     for t in reverse(B.history)
         cash -= t.delta_cash
@@ -293,6 +303,7 @@ function cashHistory(B::Broker)
     return cash_vector
 end
 
+#Untested broken functions!!!:
 
 
 """
@@ -303,10 +314,10 @@ Convert a Broker to an Asset
 
 ```jldoctest
 Random.seed!(1234);
-x=Asset();
-y=Asset();
-M=Market([x,y]);
-B = Broker(M,1000);
+x=asset();
+y=asset();
+M=market([x,y]);
+B = broker(M,1000);
 BT = Backtest(M,CrossOverStrategy,1000)
 runTest(BT)
 A = toIndex(BT.broker)

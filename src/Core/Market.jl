@@ -76,6 +76,12 @@ Base.getindex(M::Market, i::Int) = values(M.data)[i]
 assets(M::Market) = values(M.data)
 
 
+Base.length(M::Market) = maximum(length.(values(M.data)))
+height(M::Market) = length(M.data)
+Base.size(M::Market) = (height(M),length(M))
+
+
+
 """
 # Example
 
@@ -129,13 +135,11 @@ function addAssets!(M::Market,assets::AbstractVector{Asset})
 end
 
 
-Base.size(M::Market) = (height(M),length(M))
-Base.length(M::Market) = max(length.(values(M.data))...) #This should change
-height(M::Market) = length(M.data)
 
 Base.getindex(M::Market, key2::Int, ::Colon) = to_asset(M)[key2,:]
 Base.getindex(M::Market, key1::Int, key2::Int) = to_asset(M)[key1,key2]
 Base.getindex(M::Market, ::Colon, key2::Int) = to_asset(M)[:,key2]
+
 ## Untested broken functions!!!:
 """
 

@@ -13,7 +13,7 @@ export
 Random.seed!(1234);
 A = asset();
 B = Buy(A, 10);
-O = Order(B, 100);
+O = order(B, 100);
 T = Trade(O);
 value(T)
 
@@ -44,4 +44,4 @@ end
 Base.show(io::IO, T::Trade) = print(io, "A $(T.derivative.underlying.ticker) trade of $(T.volume) $(name(T.derivative)) on $(T.date)")
 
 value(T::Trade) = T.volume * value(T.derivative)
-price(T::Trade) = T.volume * T.derivative.price
+price(T::Trade) = T.volume * price(T.derivative)

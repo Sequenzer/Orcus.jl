@@ -1,5 +1,5 @@
-@testset verbose=true "Market" begin 
-@testset verbose=true "core" begin
+@testset verbose=false "Market" begin 
+@testset verbose=false "core" begin
     @testset "core.functions" begin
         Random.seed!(1234);
         M=market(3);

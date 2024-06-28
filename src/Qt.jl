@@ -1,6 +1,7 @@
 
 module Qt
 
+using Pkg
 using Dates
 using Random
 using Statistics
@@ -21,21 +22,25 @@ include("Core/Market.jl")
 include("Core/Order.jl")
 include("Core/Trade.jl")
 include("Core/Position.jl")
-
-include("Broker.jl")
+include("Core/Broker.jl")
 
 include("Strategy.jl")
 include("Lib/Strategies.jl")
 
 include("Backtest.jl")
 
-# Write your package code here.
 
-function test_function()
-    return "hello there from Qt.jl"
+const PROJECT_TOML = Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))
+const VERSION_NUMBER = VersionNumber(PROJECT_TOML["version"])
+
+function __init__()
+    otp ="""
+
+    $(PROJECT_TOML["name"]) version $(VERSION_NUMBER) has been initialized....
+
+    """
+    println(otp)
 end 
-
-test_function()
 
 
 

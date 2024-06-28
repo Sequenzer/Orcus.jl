@@ -1,6 +1,7 @@
 
 export 
     Order,
+    order,
     price,
     fulfill,
     volume,
@@ -15,7 +16,7 @@ A Order that has been fulfilled.
 ```jldoctest
 A=asset();
 B=Buy(A,10);
-O=Order(B);
+O=order(B);
 O.fulfilled
 # output
 
@@ -37,6 +38,8 @@ mutable struct Order
     end
 end
 
+order(derivative::Derivative, volume::Real=1) = Order(derivative,volume)
+
 Base.show(io::IO,O::Order) = print(io,"Order for $(O.volume) $(name(O.derivative)) on $(O.derivative.underlying.ticker)")
 
 
@@ -51,7 +54,7 @@ The price of a placed Order, can be negative.
 Random.seed!(1234);
 A=asset();
 B=Buy(A,10);
-O=Order(B,10);
+O=order(B,10);
 price(O)
 # output
 

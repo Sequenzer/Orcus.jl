@@ -96,7 +96,7 @@ function requestToClose(P::Position)
     return P
 end
 
-function close(P::Position, date::DateTime=length(P.derivative.underlying))
+function close(P::Position, date::Int=length(P.derivative.underlying))
     T = Trade(P, date)
     P.closed = true
     return T
