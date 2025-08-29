@@ -17,13 +17,13 @@ A temporary strategy for testing purposes.
 ## Example
 ```jldoctest
 Random.seed!(1234);
-x=Asset();
-y=Asset();
-M=Market([x,y]);
-M.data
-B = Broker(M,1000);
+x=asset();
+y=asset();
+M=market([x,y]);
+B = broker(M,1000);
 s = CrossOverStrategy(B)
 init(s)
+x.data
 print(x)
 collect(x.data["SMA10"])[end]
 
@@ -33,8 +33,8 @@ collect(x.data["SMA10"])[end]
 """
 function crossover_next(s::Strategy)
     for (_,asset) in s.market.data
-        sma10 = collect(values(asset.data["SMA10"]))
-        sma20 = collect(values(asset.data["SMA20"]))
+        sma10 = asset["SMA10"]
+        sma20 = asset["SMA20"]
 
         if length(sma10) < 2
             continue
@@ -60,8 +60,8 @@ function crossover_init(s::Strategy)
     SMA20=IndicatorGenerator(simple_average,20)
     SMA10=IndicatorGenerator(simple_average,10)
     for (_,v) in s.market.data
-        applyIndicator(SMA20,v,"Close","SMA20")
-        applyIndicator(SMA10,v,"Close","SMA10")
+        apply_indicator(SMA20,v,"Close","SMA20")
+        apply_indicator(SMA10,v,"Close","SMA10")
     end
 end
 

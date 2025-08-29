@@ -1,5 +1,3 @@
-#test
-
 
 export Backtest,
     runTest,
@@ -13,9 +11,9 @@ Backtest a strategy on a market.
 
 ```jldoctest
 Random.seed!(1234);
-x=Asset();
-y=Asset();
-M=Market([x,y]);
+x=asset();
+y=asset();
+M=market([x,y]);
 T = Backtest(M,CrossOverStrategy,1000)
 runTest(T)
 
@@ -41,6 +39,8 @@ mutable struct Backtest{T<:Strategy}
 
 end
 
+backtest(market::Market, strategy::Type, cash::Real=1000) = Backtest(market,strategy,cash)
+
 
 
 function processDay!(BT::Backtest)
@@ -54,11 +54,11 @@ function runTest(BT::Backtest)
     end
     # Initialize strategy
     init(BT.strategy)
-    market = cutDataUntil(BT.market,end_date(BT.market))
-    BT.broker.market = market
-    BT.strategy.market = market 
-    for i in getDomain(market)
-        takeData!(BT.market,market,i)
+    B = BT.broker
+    base_market = copy(BT.market)
+
+    for i in 1:length(base_market)
+       set_data_to!(B.market,base_market,1:i)
        #println(length(BT.broker.market))
         processDay!(BT)
     end

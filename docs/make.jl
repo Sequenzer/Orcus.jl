@@ -6,4 +6,4 @@ Pkg.activate("..")
 
 using Documenter, Qt
 
-makedocs(sitename="Quant Documentation")
+makedocs(sitename="Qt.jl")

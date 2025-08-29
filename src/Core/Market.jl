@@ -8,7 +8,9 @@ export Market,
        start_date,
        to_asset,      
        end_date,
-       names
+       to_market,
+       names,
+       set_data_to!
 
 """
     Market
@@ -139,6 +141,45 @@ end
 Base.getindex(M::Market, key2::Int, ::Colon) = to_asset(M)[key2,:]
 Base.getindex(M::Market, key1::Int, key2::Int) = to_asset(M)[key1,key2]
 Base.getindex(M::Market, ::Colon, key2::Int) = to_asset(M)[:,key2]
+Base.copy(M::Market) = Market([copy(A) for A in values(M.data)])
+
+
+function Base.getindex(M::Market, r::UnitRange{Int})
+    newM = copy(M)
+    for (k,v) in M.data
+      newM.data[k] = v[r]
+    end
+    return newM
+end
+
+
+"""
+  shorten!(M::Market,U::UnitRange{Int})
+
+Shorten the data of all Assets in the Market to the UnitRange U
+
+# Example
+
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+M=market([x,y]);
+shorten!(M,1:10)
+length(M)
+
+# output
+10
+```
+"""
+function shorten!(M::Market,U::UnitRange{Int})
+    for (_,v) in M.data
+        shorten!(v,U)
+    end
+end
+
+
+
 
 ## Untested broken functions!!!:
 """
@@ -198,7 +239,22 @@ function getDomain(M::Market)
     return sort(unique(domain))
 end
 
+"""
+    to_asset(M::Market)
 
+Convert a Market to an Asset
+
+# Example
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+M=market([x,y]);
+A=to_asset(M)
+names(A)
+# output
+```
+"""
 function to_asset(M::Market)
     @assert length(unique(names(M))) == length(names(M))
     ats = assets(M) 
@@ -212,5 +268,60 @@ function to_asset(M::Market)
     end
     return asset("Market",dt,namesToAdd) 
 end
+
+"""
+    to_market(A::Asset)
+
+Convert an Asset that was created from a Market to a Market.
+
+# Example
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+M=market([x,y]);
+A=to_asset(M)
+M2=to_market(A)
+```
+"""
+function to_market(A::Asset)
+    M = market()
+    nms = split.(names(A),"_")
+     
+    return nms
+end
+
+
+"""
+    set_data_to!(M::Market, N::Market,u::UnitRange{Int})
+
+Set the data of Market M to the data of Market N for the UnitRange u
+
+# Example
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+x1 = copy(x)
+y1 = copy(y)
+M = market([x,y]);
+N = market([x1,y1]);
+set_data_to!(M,N,1:130)
+length(M)
+
+# output
+10
+
+```
+"""
+function set_data_to!(M::Market, N::Market,u::UnitRange{Int})
+    @assert names(M) == names(N)    
+    for (k,v) in M.data
+        v.data = N.data[k].data[:,u]
+    end
+    return M
+end
+
+
 
 

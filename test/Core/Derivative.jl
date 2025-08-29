@@ -1,5 +1,5 @@
-@testset verbose=true "Derivative" begin 
-@testset verbose=true "core" begin
+@testset verbose=false "Derivative" begin 
+@testset verbose=false "core" begin
     @testset "core.functions" begin
         ticker = "TSTS" 
         i = 1:1:100

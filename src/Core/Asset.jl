@@ -13,7 +13,8 @@ export Asset,
     plot,
     plot!,
     value,
-    add_datapoint!
+    add_datapoint!,
+    shorten!
 
 
 
@@ -36,19 +37,6 @@ x.ticker
 # output
 
 "AAPL"
-```
-```
-x = asset()
-x["Close"]
-x["Test"] = x["Close"]
-typeof(x["Close"])
-x.data
-```
-```
-x.data
-
-x.data_id
-
 ```
 """
 mutable struct Asset
@@ -104,6 +92,21 @@ Base.getindex(A::Asset, ::Colon, key2::Int) = A.data[:,key2]
 Base.getindex(A::Asset, key::String, ::Colon) = getindex(A,key)
 Base.getindex(A::Asset, key::String, key2::Int) = getindex(A,key)[key2]
 Base.getindex(A::Asset, ::Colon, ::Colon) = A.data
+function Base.copy(A::Asset)
+    B = Asset(A.ticker,copy(A.data),copy(A.data_id))
+    B.indicator_functions = copy(A.indicator_functions)
+    return B
+end
+
+
+function Base.getindex(A::Asset, r::UnitRange{Int})
+    # return the asset with data cut to size 
+    B = copy(A)
+    B.data = A.data[:,r]
+    return B
+end
+
+
 Base.names(A::Asset) = A.data_id
 
 
@@ -148,17 +151,12 @@ The randOHLC function generates n many OHLC datapoints. The precision argument i
 
 Random.seed!(1234)
 prop_func=x->rand()-0.5
-randOHLC(10,prop_func,1:2:5,5)
+ohlc = randOHLC(10,prop_func,1:2:5,5)
+size(ohlc[1])
 
 # output
 
-julia> randOHLC(10,prop_func,1:2:5,5)
-4×5 Matrix{Union{Missing, Number}}:
- 10        missing   9.98786  missing  10.4839
- 10        missing  10.4839   missing  11.0327
-  9.59361  missing   9.73523  missing  10.4781
-  9.98786  missing  10.4839   missing  11.0327
-
+(4, 5)
 ```
 """
 function randOHLC(
@@ -195,13 +193,13 @@ end
 
 Plot the data of an Asset. # Major ToDo
 
-```jldoctest
+```julia
 A = asset()
 p = plot(A)
 B = asset()
 plot!(p,B)
-
 ```
+
 """
 function plot(A::Asset, data_key::String="Close")
     println("Plotting Asset: ", A.ticker)
@@ -229,8 +227,8 @@ function plot!(plt::UnicodePlots.Plot{<:UnicodePlots.Canvas}, A::Asset, data_key
         )
 end
 
-"""
-    calculateIndicator(Ind::IndicatorGenerator,a::Asset,data_key::String)
+@doc"""
+    calculate_indicator(Ind::IndicatorGenerator,a::Asset,data_key::String)
 
 # Arguments
 - Ind: The IndicatorGenerator we fand to calculate data for.
@@ -244,8 +242,12 @@ An Array of the Data calculated.
 Random.seed!(1234)
 x=asset()
 SMA10=indicator_generator(simple_average,10)
-calculate_indicator(SMA10,x,"Close")
+v = calculate_indicator(SMA10,x,"Close")
+length(v)
 
+# output
+
+3651
 ```
 """
 function calculate_indicator(Ind::IndicatorGenerator, asset::Asset, data_key::String)
@@ -267,8 +269,8 @@ end
 
 
 
-"""
-    applyIndicator(Ind::IndicatorGenerator,asset::Asset,data_key::String,name::String)
+@doc"""
+    apply_indicator(Ind::IndicatorGenerator,asset::Asset,data_key::String,name::String)
 
 # Arguments
 - Ind: The IndicatorGenerator we fand to calculate data for.
@@ -280,7 +282,7 @@ end
 The Asset with the indicator added to its data.
 ```jldoctest
 Random.seed!(1234)
-SMA20=IndicatorGenerator(simple_average,20)
+SMA20=indicator_generator(simple_average,20)
 
 x=asset();
 apply_indicator(SMA20,x,"Close","SMA20")
@@ -288,10 +290,9 @@ height(x)
 
 # output
 
-
+5
 ```
 """
-
 function apply_indicator(
     Ind::IndicatorGenerator,
     asset::Asset,
@@ -317,10 +318,12 @@ Random.seed!(1234)
 SMA20=IndicatorGenerator(simple_average,20)
 x=asset();
 apply_indicator(SMA20,x,"Close","SMA20")
-x.data
-x.indicator_functions
-x.data_id
 add_datapoint!(x,DataPoint([113,113,113,113,missing]))
+length(x)
+
+# output
+
+3652
 ```
 """
 function add_datapoint!(A::Asset, dp::DataPoint)
@@ -363,5 +366,24 @@ function get_data(A::Asset, i::Int)
 end
 
 
+"""
+  shorten!(A::Asset, u::UnitRange{Int})
+
+Shorten the data of an Asset to the range u.
+
+```jldoctest
+Random.seed!(1234)
+x=asset()
+shorten!(x,1:10)
+length(x)
+
+# output
+10
+```
+"""
+function shorten!(A::Asset, u::UnitRange{Int})
+    A.data = A.data[:,u]
+    return A
+end
 
 

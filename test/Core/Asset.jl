@@ -1,4 +1,4 @@
-@testset verbose=true "Asset" begin 
+@testset verbose=false "Asset" begin 
 @testset verbose=false "core" begin
     @testset "constructor" begin
         dp1 = DataPoint([1,2,missing,4,5])

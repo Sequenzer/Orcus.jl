@@ -7,6 +7,8 @@ using Random
 using Statistics
 using UnicodePlots
 using DataStructures
+using DataFrames
+using CSV
 
 
 export 
@@ -23,12 +25,13 @@ include("Core/Order.jl")
 include("Core/Trade.jl")
 include("Core/Position.jl")
 include("Core/Broker.jl")
+include("Core/Strategy.jl")
+include("Core/Backtest.jl")
 
-include("Strategy.jl")
 include("Lib/Strategies.jl")
+include("Lib/Stocks.jl")
 
-include("Backtest.jl")
-
+include("Live/core.jl")
 
 const PROJECT_TOML = Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))
 const VERSION_NUMBER = VersionNumber(PROJECT_TOML["version"])

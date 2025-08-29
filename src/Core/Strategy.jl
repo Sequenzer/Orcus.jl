@@ -47,6 +47,8 @@ macro generateStrategy(StrategyName::Symbol, next::Symbol, init::Symbol)
     end)
 end
 
+permutations(x::Vector{Int}) = [x[perm] for perm in permutations(1:length(x))]
+
 #=
 
 tmp_next(s::Strategy) = println("next")

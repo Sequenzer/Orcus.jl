@@ -9,7 +9,7 @@ export
     resolvePortfolio!,
     processAll!,
     requestToCloseAll!,
-    cashHistory,
+    cash_history,
     toIndex,
     status
 
@@ -63,7 +63,6 @@ function broker(n_Assets::Int,cash::Real)
 end
 
 Base.show(io::IO,B::Broker) = print(io,"Broker with $(round(B.cash;digits=2)) funds and $(length(B.orders)) open orders")
-
 
 """
 
@@ -178,7 +177,7 @@ function resolvePortfolio!(B::Broker)
                 push!(B.history,T)
             else
                 P.closed = false 
-                println("Not enough funds to close position")
+                #println("Not enough funds to close position") FIXME: This should maybe cancel the backtest or something
                 return
             end
 
@@ -277,7 +276,7 @@ function status(B::Broker,digits::Int=2)
     return
 end
 
-
+#TODO: This function needs documentation
 function requestToCloseAll!(B::Broker)
     for P in B.portfolio
         requestToClose(P)
@@ -285,29 +284,45 @@ function requestToCloseAll!(B::Broker)
     return
 end
 
-    
+#TODO: This function needs documentation
 
+"""
+    length(B::Broker)
 
+Return the length of the market the Broker is operating on.
+"""
 length(B::Broker) = length(B.market)
 
+#TODO: This function needs documentation
 
+"""
+    cashHistory(B::Broker)
 
-function cashHistory(B::Broker)
-    cash_vector = Tuple{DateTime, Real}[(length(B),B.cash)]
+Return the cash history of the Broker
+
+# Example
+```julia
+Random.seed!(1234);
+M=market([asset(),asset()]);
+T = Backtest(M,CrossOverStrategy,1000)
+runTest(T)
+cash_history(T.broker)
+```
+"""
+
+function cash_history(B::Broker)
+    cash_vector = Tuple{Int, Real}[(length(B),B.cash)]
     cash = B.cash
     for t in reverse(B.history)
         cash -= t.delta_cash
         push!(cash_vector,(t.date,cash))
     end
+    push!(cash_vector,(1,cash))
     cash_vector = reverse(cash_vector) 
     return cash_vector
 end
 
-#Untested broken functions!!!:
-
-
 """
-
     toIndex(B::Broker)::Asset
 
 Convert a Broker to an Asset
@@ -324,26 +339,27 @@ A = toIndex(BT.broker)
 ```
 
 """
-
-
 function toIndex(B::Broker)::Asset
-    A = Asset("Broker")
-    A.data = Dict{String,AssetData}()
-    A.data["Cash"] = AssetData(missing)
-    for (date,cash) in cashHistory(B)
-        A.data["Cash"][date] = cash
+    cash = cash_history(B)
+    n = cash[end][1]
+    data = data_series(n)
+    lastindex = 1
+    nextindex = 1
+    for (i,c) in cash
+        nextindex = i
+        data[1,lastindex:nextindex] .= c
+        lastindex = nextindex
     end
-
+    A = Asset("Broker",data,["Cash"])
     return A
 end
 
+"""
+    plot(B::Broker)
+
+Plot the cash history of the Broker
+
+"""
 function plot(B::Broker)
-    plot(toIndex(B),"Cash")
+  plot(toIndex(B),"Cash")
 end
-
-
-
-
-
-
-

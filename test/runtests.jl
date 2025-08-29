@@ -12,6 +12,9 @@ using Dates
     include("Core/Market.jl")
     include("Core/Position.jl")
     include("Core/Trade.jl")
+    include("Core/Order.jl")
+    include("Core/Strategy.jl")
+    include("Core/Broker.jl")
     #include("Strategy.jl")
 end
 
