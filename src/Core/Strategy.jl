@@ -5,8 +5,6 @@ export Strategy,
     init,
     @generateStrategy
 
-
-
 abstract type Strategy end
 
 next(s::Strategy) = error("No next method defined for Strategy \"$(typeof(s))\"")
@@ -15,9 +13,6 @@ init(s::Strategy) = error("No init method defined for Strategy \"$(typeof(s))\""
 
 macro generateStrategy(StrategyName::Symbol, next::Symbol, init::Symbol)
     isdefined(Main,StrategyName) && error("Symbol \"$(StrategyName)\" is already defined")
-    #isdefined(Main,next) || error("Symbol \"$(next)\" is not defined")
-    #isdefined(Main,init) || error("Symbol \"$(init)\" is not defined")
-
 
     strct = quote
         mutable struct $StrategyName <: Strategy
@@ -39,12 +34,12 @@ macro generateStrategy(StrategyName::Symbol, next::Symbol, init::Symbol)
             Main.$init(s)
         end
     end
-    return eval(quote
+    eval(quote
         export $StrategyName
-        
         $strct
         $functs
     end)
+    return nothing
 end
 
 permutations(x::Vector{Int}) = [x[perm] for perm in permutations(1:length(x))]

@@ -1,6 +1,0 @@
-[submodule "src/eqt"]
-	path = src/eqt
-	url = git@github.com:Sequenzer/eqt.git
-[submodule "src/cqt"]
-	path = src/cqt
-	url = git@github.com:Sequenzer/cqt.git

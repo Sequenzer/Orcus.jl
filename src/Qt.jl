@@ -5,11 +5,12 @@ using Pkg
 using Dates
 using Random
 using Statistics
+using Printf
 using UnicodePlots
 using DataStructures
 using DataFrames
 using CSV
-
+using JSON
 
 export 
     Dates,
@@ -32,18 +33,21 @@ include("Lib/Strategies.jl")
 include("Lib/Stocks.jl")
 
 include("Live/core.jl")
+include("Live/live_trader.jl")
 
 const PROJECT_TOML = Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))
 const VERSION_NUMBER = VersionNumber(PROJECT_TOML["version"])
 
 function __init__()
-    otp ="""
-
-    $(PROJECT_TOML["name"]) version $(VERSION_NUMBER) has been initialized....
-
-    """
-    println(otp)
-end 
+    println(stderr, "$(PROJECT_TOML["name"]) v$(VERSION_NUMBER) initialized.")
+    if isinteractive()
+        try
+            ensure_connected(verbose=true)
+        catch e
+            @warn "Qt: auto-connect failed: $e\n  Run ensure_connected() to retry."
+        end
+    end
+end
 
 
 

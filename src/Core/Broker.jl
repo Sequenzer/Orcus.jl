@@ -41,6 +41,7 @@ mutable struct Broker
     portfolio::Vector{Position}
     orders::Vector{Order}
     history::Vector{Trade}
+    equity_history::Vector{Real}
     function Broker(market::Market,cash::Real)
         this = new()
         this.cash = cash
@@ -48,6 +49,7 @@ mutable struct Broker
         this.portfolio = Vector{Position}()
         this.orders = Vector{Order}()
         this.history = Vector{Trade}()
+        this.equity_history = Real[]
         return this
     end
 end
@@ -233,6 +235,8 @@ end
 function processAll!(B::Broker)
     processOrders!(B)
     resolvePortfolio!(B)
+    equity = B.cash + sum((value(P) for P in B.portfolio), init=0.0)
+    push!(B.equity_history, equity)
     return B
 end
 
@@ -340,18 +344,9 @@ A = toIndex(BT.broker)
 
 """
 function toIndex(B::Broker)::Asset
-    cash = cash_history(B)
-    n = cash[end][1]
-    data = data_series(n)
-    lastindex = 1
-    nextindex = 1
-    for (i,c) in cash
-        nextindex = i
-        data[1,lastindex:nextindex] .= c
-        lastindex = nextindex
-    end
-    A = Asset("Broker",data,["Cash"])
-    return A
+    isempty(B.equity_history) && error("No equity history — run a backtest first")
+    data = DataSeries(reshape(collect(Real, B.equity_history), 1, length(B.equity_history)))
+    Asset("Broker", data, ["Equity"])
 end
 
 """
@@ -361,5 +356,5 @@ Plot the cash history of the Broker
 
 """
 function plot(B::Broker)
-  plot(toIndex(B),"Cash")
+  plot(toIndex(B),"Equity")
 end

@@ -5,5 +5,6 @@ docs/build/
 *.ts*.so
 *.tstt
 *.sh
-
+/src/eqt/_build/
+*.env
 

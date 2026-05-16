@@ -12,8 +12,10 @@ load_stock("GOOG")
 
 ```
 """
+const _STOCKS_DATA_DIR = joinpath(@__DIR__, "data")
+
 function load_stock(name::String)
-    dt =  CSV.File("./Lib/data/$(name).csv") 
+    dt = CSV.File(joinpath(_STOCKS_DATA_DIR, "$(name).csv"))
     return asset(dt, name)
 end
 
