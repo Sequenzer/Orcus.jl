@@ -1,9 +1,9 @@
 @testset verbose=false "Asset" begin 
 @testset verbose=false "core" begin
     @testset "constructor" begin
-        dp1 = DataPoint([1,2,missing,4,5])
-        dp2 = DataPoint([1,2,missing,4,missing,missing])
-        ds = data_series([dp1,missing,dp2])
+        dp1 = Float64[1,2,NaN,4,5]
+        dp2 = Float64[1,2,NaN,4,NaN,NaN]
+        ds = data_series([dp1, fill(NaN,6), dp2])
 
         @test isa(asset("AAPL",ds,["1","2","3"]),Asset)
     end
@@ -48,8 +48,8 @@
         A = asset(ticker,i,prp_func,100,2)
         SMA20=IndicatorGenerator(simple_average,20)
         apply_indicator(SMA20,A,"Close","SMA20")
-        add_datapoint!(A,DataPoint([113,113,113,113,missing]))
-        add_datapoint!(A,DataPoint([113,113,113,113,missing]))
+        add_datapoint!(A,Float64[113,113,113,113,NaN])
+        add_datapoint!(A,Float64[113,113,113,113,NaN])
         @test A.data[5,end] == 100.65
         @test A.data[4,end] == 113
     end

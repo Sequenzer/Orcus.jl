@@ -3,7 +3,8 @@
 export Strategy,
     next,
     init,
-    @generateStrategy
+    @generateStrategy,
+    @strategyMethods
 
 abstract type Strategy end
 
@@ -43,6 +44,30 @@ macro generateStrategy(StrategyName::Symbol, next::Symbol, init::Symbol)
 end
 
 permutations(x::Vector{Int}) = [x[perm] for perm in permutations(1:length(x))]
+
+# For complex strategies with custom fields: user defines the struct manually
+# (must include broker::Broker and market::Market), then calls this macro to
+# register next/init dispatch.
+#
+# Usage:
+#   mutable struct MyStrat <: Strategy
+#       broker::Broker
+#       market::Market
+#       my_field::SomeType
+#       MyStrat(b::Broker) = new(b, b.market, initial_value)
+#   end
+#   @strategyMethods MyStrat my_next_fn my_init_fn
+macro strategyMethods(StrategyName::Symbol, next_fn::Symbol, init_fn::Symbol)
+    eval(quote
+        function next(s::Main.$StrategyName)
+            Main.$next_fn(s)
+        end
+        function init(s::Main.$StrategyName)
+            Main.$init_fn(s)
+        end
+    end)
+    return nothing
+end
 
 #=
 

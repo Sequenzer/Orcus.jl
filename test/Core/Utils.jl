@@ -6,12 +6,12 @@
     @test ismissing(asset[date])
 
     @testset "DataSeries" begin
-        dp1 = DataPoint([1,2,missing,4,5])
-        dp2 = DataPoint([1,2,missing,4,missing,missing])
-        ds = data_series([dp1,missing,dp2])
+        dp1 = Float64[1,2,NaN,4,5]
+        dp2 = Float64[1,2,NaN,4,NaN,NaN]
+        ds = data_series([dp1, fill(NaN,6), dp2])
 
         @test ds[1,1] == 1
-        @test ismissing(ds[1,3])
+        @test isnan(ds[1,3])
         @test size(ds) == (3,6)
 
         ds2 = data_series([dp1,dp2])

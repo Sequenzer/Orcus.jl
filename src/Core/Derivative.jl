@@ -252,12 +252,15 @@ mutable struct ShortCall <: Derivative
     structure::Function
     price::Number
     strike::Number
-    function ShortCall(underlying::Asset,strike::Number,premium::Number=0)
+    expiry_days::Int    # calendar days to expiry (used by live layer for OCC symbol)
+    function ShortCall(underlying::Asset, strike::Number,
+                       premium::Number=0, expiry_days::Int=30)
         this = new()
-        this.underlying=underlying
-        this.structure = x-> min(-x+strike,0)
-        this.price = -premium 
-        this.strike = strike
+        this.underlying  = underlying
+        this.structure   = x -> min(-x + strike, 0)
+        this.price       = -premium
+        this.strike      = strike
+        this.expiry_days = expiry_days
         return this
     end
 end
@@ -267,12 +270,15 @@ mutable struct ShortPut <: Derivative
     structure::Function
     price::Number
     strike::Number
-    function ShortPut(underlying::Asset,strike::Number,premium::Number=0)
+    expiry_days::Int    # calendar days to expiry (used by live layer for OCC symbol)
+    function ShortPut(underlying::Asset, strike::Number,
+                      premium::Number=0, expiry_days::Int=30)
         this = new()
-        this.underlying=underlying
-        this.structure = x-> min(x-strike,0)
-        this.price = -premium 
-        this.strike = strike
+        this.underlying  = underlying
+        this.structure   = x -> min(x - strike, 0)
+        this.price       = -premium
+        this.strike      = strike
+        this.expiry_days = expiry_days
         return this
     end
 end

@@ -13,7 +13,7 @@
         @test price(P.derivative)-value(P.derivative) == 10
         requestToClose(P)
         @test P.requestToClose == true
-        Qt.close(P)
+        Orcus.close(P)
         @test P.closed == true
         
     end

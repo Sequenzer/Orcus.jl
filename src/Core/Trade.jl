@@ -25,14 +25,14 @@ value(T)
 """
 mutable struct Trade
     derivative::Derivative
-    volume::Real
+    volume::Float64
     date::Int
-    delta_cash::Real
+    delta_cash::Float64
     function Trade(O::Order, date::Int=length(O.derivative.underlying))
         self = new()
         self.derivative = O.derivative
-        self.volume = O.volume
-        self.date = date 
+        self.volume = Float64(O.volume)
+        self.date = date
         return self
     end
     function Trade()

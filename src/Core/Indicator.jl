@@ -46,6 +46,6 @@ indicator_generator(calc_func::Function, window::Int=1) = IndicatorGenerator(cal
 simple_average([1,missing,3,4])
 
 """
-simple_average(data::DataPoint)::Real = mean(skipmissing(data))
+simple_average(data::DataPoint)::Float64 = mean(filter(!isnan, data))
 
 

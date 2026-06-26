@@ -1,5 +1,5 @@
 
-export 
+export
     Broker,
     broker,
     placeOrder!,
@@ -9,6 +9,10 @@ export
     resolvePortfolio!,
     processAll!,
     requestToCloseAll!,
+    requestToClose!,
+    has_position,
+    position_direction,
+    unrealized_pnl,
     cash_history,
     toIndex,
     status
@@ -36,20 +40,20 @@ true
 ```
 """
 mutable struct Broker
-    cash::Real
+    cash::Float64
     market::Market
     portfolio::Vector{Position}
     orders::Vector{Order}
     history::Vector{Trade}
-    equity_history::Vector{Real}
-    function Broker(market::Market,cash::Real)
+    equity_history::Vector{Float64}
+    function Broker(market::Market, cash::Real)
         this = new()
-        this.cash = cash
-        this.market = market
-        this.portfolio = Vector{Position}()
-        this.orders = Vector{Order}()
-        this.history = Vector{Trade}()
-        this.equity_history = Real[]
+        this.cash           = Float64(cash)
+        this.market         = market
+        this.portfolio      = Vector{Position}()
+        this.orders         = Vector{Order}()
+        this.history        = Vector{Trade}()
+        this.equity_history = Float64[]
         return this
     end
 end
@@ -171,21 +175,14 @@ length(B.history)
 function resolvePortfolio!(B::Broker)
     for P in B.portfolio
         if P.requestToClose
-            T = close(P, length(B)) 
-            val = -value(T) #Negative because we are closing the position
+            T = close(P, length(B))
+            val = -value(T)
             T.delta_cash = val
-            if B.cash + val >= 0
-                B.cash += val
-                push!(B.history,T)
-            else
-                P.closed = false 
-                #println("Not enough funds to close position") FIXME: This should maybe cancel the backtest or something
-                return
-            end
-
+            B.cash += val   # always execute — models forced liquidation
+            push!(B.history, T)
         end
     end
-    B.portfolio = filter(x->!x.closed,B.portfolio)
+    B.portfolio = filter(x -> !x.closed, B.portfolio)
     return B
 end
 
@@ -214,22 +211,21 @@ length(B.history)
 """
 function processOrders!(B::Broker)
     today = length(B)
-    isempty(B.orders) && return
-    order = last(B.orders)
-    B.cash - price(order) >= 0 || return
-    B.cash -= fulfill(order,today)
-    pop!(B.orders)
-
-    ##Add Trade to History
-    T = Trade(order,today)
-    T.delta_cash = -price(order)
-    push!(B.history,T)
-    ##Add Position to Portfolio
-    P = Position(T)
-    push!(B.portfolio,P)
-
-    processOrders!(B)
-    return B;
+    while !isempty(B.orders)
+        order = last(B.orders)
+        if B.cash - price(order) < 0
+            pop!(B.orders)   # discard this unfillable order, keep trying others
+            continue
+        end
+        cost = fulfill(order, today)
+        B.cash -= cost
+        pop!(B.orders)
+        T = Trade(order, today)
+        T.delta_cash = -price(order)
+        push!(B.history, T)
+        push!(B.portfolio, Position(T))
+    end
+    return B
 end
 
 function processAll!(B::Broker)
@@ -288,6 +284,47 @@ function requestToCloseAll!(B::Broker)
     return
 end
 
+"""
+    requestToClose!(B::Broker, ticker::String)
+
+Mark all open positions for `ticker` to be closed on the next `processAll!` call.
+"""
+function requestToClose!(B::Broker, ticker::String)
+    for P in B.portfolio
+        P.derivative.underlying.ticker == ticker && requestToClose(P)
+    end
+    return
+end
+
+"""
+    has_position(B::Broker, ticker::String) -> Bool
+
+Return `true` if the broker currently holds any open position (long or short) in `ticker`.
+"""
+has_position(B::Broker, ticker::String) =
+    any(P -> P.derivative.underlying.ticker == ticker, B.portfolio)
+
+"""
+    position_direction(B::Broker, ticker::String) -> Symbol
+
+Return `:long`, `:short`, or `:flat` for the current open position in `ticker`.
+"""
+function position_direction(B::Broker, ticker::String)
+    for P in B.portfolio
+        P.derivative.underlying.ticker == ticker || continue
+        return isa(P.derivative, Buy) ? :long : :short
+    end
+    return :flat
+end
+
+"""
+    unrealized_pnl(B::Broker) -> Float64
+
+Total unrealized P&L of all currently open positions.
+"""
+unrealized_pnl(B::Broker) =
+    sum(value(P) - price(P) for P in B.portfolio; init=0.0)
+
 #TODO: This function needs documentation
 
 """
@@ -345,7 +382,7 @@ A = toIndex(BT.broker)
 """
 function toIndex(B::Broker)::Asset
     isempty(B.equity_history) && error("No equity history — run a backtest first")
-    data = DataSeries(reshape(collect(Real, B.equity_history), 1, length(B.equity_history)))
+    data = reshape(B.equity_history, 1, length(B.equity_history))
     Asset("Broker", data, ["Equity"])
 end
 

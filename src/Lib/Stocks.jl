@@ -1,6 +1,6 @@
 #Binding for the stocks in ./data/(name).csv
 
-export load_stock,AAPL,GOOG
+export load_stock, load_stocks, available_stocks, AAPL, GOOG
 
 """
     load_stock(name::String)
@@ -36,22 +36,38 @@ end
 
 
 function asset(fl::CSV.File, name::String="Asset")
-  @assert hasproperty(fl, :date) "The CSV file must have a date column"
-  index = to_index(fl[:date])
+    @assert hasproperty(fl, :date) "The CSV file must have a date column"
+    index = to_index(fl[:date])
+    nms   = filter(x -> x !== :date, propertynames(fl))
+    data  = DataPoint[]
 
-  data = DataPoint[]
-
-  names = filter(x -> x!==:date,propertynames(fl))
-
-  for n in names
-    v = DataPoint(fill(missing, index[end]))
-    dt = reverse(fl[n])
-    for i in 1:length(fl[:date])
-      v[index[i]] = dt[i]
+    for n in nms
+        v  = fill(NaN, index[end])      # NaN = no data for this bar
+        dt = reverse(fl[n])
+        for i in 1:length(fl[:date])
+            v[index[i]] = Float64(dt[i])
+        end
+        push!(data, v)
     end
-    push!(data, DataPoint(v))
-  end
-  return asset(name, data_series(data), uppercasefirst.(String.(names)))
+    return asset(name, data_series(data), uppercasefirst.(String.(nms)))
+end
+
+"""
+    available_stocks() -> Vector{String}
+
+List all stock tickers available in the data directory.
+"""
+available_stocks() = sort([splitext(f)[1]
+    for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
+
+"""
+    load_stocks(names::Vector{String}) -> Market
+
+Load multiple stocks by ticker name and return them as a Market.
+All tickers must exist in the data directory (see `available_stocks()`).
+"""
+function load_stocks(names::Vector{String})
+    market([load_stock(n) for n in names])
 end
 
 AAPL = load_stock("AAPL")

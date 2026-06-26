@@ -17,373 +17,262 @@ export Asset,
     shorten!
 
 
-
-
-
 """
+    Asset
 
-This is an Asset
+A single instrument's price/indicator data.
 
-# Fields
-- ticker: The name of the Asset, by which it should be identified.
-- interval: The maximal interval the data can span across.
-- prop_funct: The propability function defining the random walk of the data.
+`data` is an `AbstractMatrix{Float64}` with shape `[n_datasets × n_bars]`.
+During a backtest the broker's assets hold a SubArray view into the base market
+data — zero-copy bar advancement. Outside the loop (and after `copy`) it is
+always a concrete `Matrix{Float64}`.
 
-# Example
-```jldoctest
-x=asset("AAPL")
-x.ticker
-
-# output
-
-"AAPL"
-```
+NaN is used as the sentinel for missing/gap bars — no Union boxing.
 """
 mutable struct Asset
     ticker::String
-    data::DataSeries
+    data::AbstractMatrix{Float64}
     data_id::Vector{String}
+    _idx::Dict{String,Int}            # row-name → row index, O(1) lookup
     indicator_functions::Vector{Union{Nothing,Tuple{IndicatorGenerator,String}}}
+
     function Asset(ticker::String,
-        data::DataSeries=data_series([DataPoint() for i in 1:4]),
-        data_id::Vector{String}=fill("",size(data)[1]))
+                   data::AbstractMatrix{Float64}=DataSeries(undef, 4, 0),
+                   data_id::Vector{String}=fill("", size(data, 1)))
 
-        @assert size(data)[1] == length(data_id)
-
+        @assert size(data, 1) == length(data_id)
         this = new()
-        this.ticker = ticker
-        this.data = data
-        this.data_id = data_id
+        this.ticker   = ticker
+        this.data     = data
+        this.data_id  = data_id
+        this._idx     = Dict(id => i for (i, id) in enumerate(data_id))
         this.indicator_functions = fill(nothing, length(data_id))
         return this
     end
 end
 
-asset(ticker::String,
-      data::DataSeries,
-      data_id::Vector{String}) = Asset(ticker, data, data_id)
+asset(ticker::String, data::AbstractMatrix{Float64}, data_id::Vector{String}) =
+    Asset(ticker, data, data_id)
 
 function asset()
     ticker = randstring('A':'Z', 4)
-    ohlc, data_id = randOHLC(100,x->rand()-0.5,1:5:3653,10)
-    return Asset(ticker,ohlc,data_id)
+    ohlc, data_id = randOHLC(100, x->rand()-0.5, 1:5:3653, 10)
+    return Asset(ticker, ohlc, data_id)
 end
 
 function asset(ticker::String)
-    ohlc, data_id = randOHLC(100,x->rand()-0.5,1:5:3653,10)
-    return Asset(ticker,ohlc,data_id)
+    ohlc, data_id = randOHLC(100, x->rand()-0.5, 1:5:3653, 10)
+    return Asset(ticker, ohlc, data_id)
 end
 
-
-function asset(ticker::String, interval::StepRange{Int,Int}, prop_func::Function, base::Real=100, precision::Int=10)
-    ohlc, data_id = randOHLC(base,prop_func,interval,precision)
-    return Asset(ticker,ohlc,data_id)
+function asset(ticker::String, interval::StepRange{Int,Int}, prop_func::Function,
+               base::Real=100, precision::Int=10)
+    ohlc, data_id = randOHLC(base, prop_func, interval, precision)
+    return Asset(ticker, ohlc, data_id)
 end
-
 
 
 data(A::Asset) = A.data
 
+Base.show(io::IO, A::Asset) = print(io, "Asset '$(A.ticker)' with $(n_datasets(A)) datasets")
 
-Base.show(io::IO,A::Asset) = print(io,"Asset '$(A.ticker)' with $(n_datasets(A)) datasets" )
-Base.getindex(A::Asset, key1::Int, key2::Int) = A.data[key1,key2]
-Base.getindex(A::Asset, key1::Int, ::Colon) = A.data[key1,:]
-Base.getindex(A::Asset, ::Colon, key2::Int) = A.data[:,key2]
-Base.getindex(A::Asset, key::String, ::Colon) = getindex(A,key)
-Base.getindex(A::Asset, key::String, key2::Int) = getindex(A,key)[key2]
-Base.getindex(A::Asset, ::Colon, ::Colon) = A.data
+# Indexing by row index
+Base.getindex(A::Asset, key1::Int, key2::Int)     = A.data[key1, key2]
+Base.getindex(A::Asset, key1::Int, ::Colon)        = A.data[key1, :]
+Base.getindex(A::Asset, ::Colon,  key2::Int)       = A.data[:, key2]
+Base.getindex(A::Asset, ::Colon,  ::Colon)         = A.data
+
+# Indexing by name — O(1) via _idx
+function Base.getindex(A::Asset, key::String)
+    haskey(A._idx, key) || return missing
+    A.data[A._idx[key], :]
+end
+
+function Base.getindex(A::Asset, key::String, ::Colon)
+    getindex(A, key)
+end
+
+function Base.getindex(A::Asset, key::String, key2::Int)
+    haskey(A._idx, key) || return missing
+    A.data[A._idx[key], key2]
+end
+
 function Base.copy(A::Asset)
-    B = Asset(A.ticker,copy(A.data),copy(A.data_id))
+    B = Asset(A.ticker, Matrix{Float64}(A.data), copy(A.data_id))
     B.indicator_functions = copy(A.indicator_functions)
     return B
 end
 
-
 function Base.getindex(A::Asset, r::UnitRange{Int})
-    # return the asset with data cut to size 
     B = copy(A)
-    B.data = A.data[:,r]
+    B.data = Matrix{Float64}(A.data[:, r])
     return B
 end
 
-
 Base.names(A::Asset) = A.data_id
 
-
-function Base.getindex(A::Asset, key::String)
-    for (j, id) in enumerate(A.data_id)
-        key == id && return A.data[j,:]
-    end
-    return missing
-end
-
-function Base.setindex!(A::Asset, dp::DataPoint, key1::String) 
-    index = findfirst(x->x==key1,A.data_id)
+function Base.setindex!(A::Asset, dp::DataPoint, key1::String)
+    index = get(A._idx, key1, nothing)
     if isnothing(index)
-        @assert length(dp) == size(A.data)[2]
-        A.data_id = push!(A.data_id,key1)
-        A.data = vcat(A.data,transpose(dp))
+        @assert length(dp) == size(A.data, 2)
+        # Materialize view before growing (adding a row is only valid in init)
+        mat = Matrix{Float64}(A.data)
+        push!(A.data_id, key1)
+        new_row = length(A.data_id)
+        A._idx[key1] = new_row
+        A.data = vcat(mat, transpose(dp))
+        push!(A.indicator_functions, nothing)
     else
-        A[index,:] = dp
+        A.data[index, :] .= dp
     end
-    return A 
-end 
-
-function Base.setindex!(A::Asset, dp::DataPoint, key1::Int, ::Colon) 
-    @assert length(dp) == size(A.data)[2]
-    @assert key1 <= size(A.data)[1]
-
-    A.data[key1,:] = dp
-    return A 
+    return A
 end
 
-Base.length(A::Asset) = size(A.data)[2]
-height(A::Asset) = size(A.data)[1]
-n_datasets(A::Asset) = height(A)
-Base.size(A::Asset) = size(A.data)
+function Base.setindex!(A::Asset, dp::DataPoint, key1::Int, ::Colon)
+    @assert length(dp) == size(A.data, 2)
+    @assert key1 <= size(A.data, 1)
+    A.data[key1, :] .= dp
+    return A
+end
+
+Base.length(A::Asset)  = size(A.data, 2)
+height(A::Asset)       = size(A.data, 1)
+n_datasets(A::Asset)   = height(A)
+Base.size(A::Asset)    = size(A.data)
 
 """
-    randOHLC(base::Real,n::Int,precision::Int)
+    randOHLC(base, f, interval, precision) -> (DataSeries, Vector{String})
 
-The randOHLC function generates n many OHLC datapoints. The precision argument is the number of random trades the values are based on. 
-
-```jldoctest
-
-Random.seed!(1234)
-prop_func=x->rand()-0.5
-ohlc = randOHLC(10,prop_func,1:2:5,5)
-size(ohlc[1])
-
-# output
-
-(4, 5)
-```
+Generate synthetic OHLC bars. Non-sampled bars are filled with NaN.
 """
-function randOHLC(
-    base::Number,
-    f::Function,
-    interval::StepRange{Int,Int},
-    precision::Int)
-    
-    # Warning! if 1:2:4 is used, the length of the interval is 2, not 3
+function randOHLC(base::Number, f::Function, interval::StepRange{Int,Int}, precision::Int)
     full_interval = interval.start:1:interval.stop
-
-    data_id = ["Open","High","Low","Close"]
-    ohlc = DataSeries(fill(missing,(length(data_id),length(full_interval))))
+    data_id = ["Open", "High", "Low", "Close"]
+    ohlc = fill(NaN, length(data_id), length(full_interval))
 
     lst = base
     for i in full_interval
-        if rem(i-1 ,step(interval)) !== 0
-            foreach(j->ohlc[j,i]=missing,1:length(data_id))
-            continue
-        end
-        arr = randomValue(lst, precision, f)
+        rem(i - 1, step(interval)) !== 0 && continue
+        arr       = randomValue(lst, precision, f)
         sortedarr = sort(arr)
-        ohlc[1,i] = first(arr)
-        ohlc[2,i] = last(sortedarr)
-        ohlc[3,i] = first(sortedarr)
-        ohlc[4,i] = last(arr)
+        ohlc[1, i] = first(arr)
+        ohlc[2, i] = last(sortedarr)
+        ohlc[3, i] = first(sortedarr)
+        ohlc[4, i] = last(arr)
         lst = last(arr)
     end
     return ohlc, data_id
 end
 
 """
-    plot(A::Asset)
+    plot(A::Asset, data_key="Close")
 
-Plot the data of an Asset. # Major ToDo
-
-```julia
-A = asset()
-p = plot(A)
-B = asset()
-plot!(p,B)
-```
-
+Plot the close (or other) series using UnicodePlots.
 """
 function plot(A::Asset, data_key::String="Close")
     println("Plotting Asset: ", A.ticker)
-    range = collect(skipmissing(A[data_key]))
-    domain = 1:length(range)
-    return lineplot(
-        domain,
-        range,
-        xlabel="Time",
-        ylabel="Value",
-        title="$(A.ticker) $(data_key) data"
-        )
+    row = A._idx[data_key]
+    series = filter(!isnan, A.data[row, :])
+    domain = 1:length(series)
+    return lineplot(domain, series,
+        xlabel="Time", ylabel="Value",
+        title="$(A.ticker) $(data_key) data")
 end
 
-
-# Should be reworked 
-function plot!(plt::UnicodePlots.Plot{<:UnicodePlots.Canvas}, A::Asset, data_key::String="Close")
+function plot!(plt::UnicodePlots.Plot{<:UnicodePlots.Canvas}, A::Asset,
+               data_key::String="Close")
     println("Plotting Asset: ", A.ticker)
-    range = collect(skipmissing(A[data_key]))
-    domain = 1:length(range)
-    return lineplot!(
-        plt,
-        domain,
-        range
-        )
+    row    = A._idx[data_key]
+    series = filter(!isnan, A.data[row, :])
+    domain = 1:length(series)
+    return lineplot!(plt, domain, series)
 end
 
-@doc"""
-    calculate_indicator(Ind::IndicatorGenerator,a::Asset,data_key::String)
+"""
+    calculate_indicator(Ind, asset, data_key)
 
-# Arguments
-- Ind: The IndicatorGenerator we fand to calculate data for.
-- asset: The Asset for which the indicator is computed.
-- data_key: The key of the data that the indicator is based on.    
-
-# Output
-An Array of the Data calculated.
-
-```jldoctest
-Random.seed!(1234)
-x=asset()
-SMA10=indicator_generator(simple_average,10)
-v = calculate_indicator(SMA10,x,"Close")
-length(v)
-
-# output
-
-3651
-```
+Compute an indicator series over the asset's named column.
+NaN bars in the source propagate as NaN in the output.
 """
 function calculate_indicator(Ind::IndicatorGenerator, asset::Asset, data_key::String)
-    @assert !isnothing(findfirst(x->x==data_key,asset.data_id))
-
-    data = asset[data_key]
-    # Initialize the indicator vector with missing data values
-    indicator = DataPoint(fill(missing, length(data)))
-    # Calculate the indicator for non-empty data points
-        for i in eachindex(data)
-            if i > Ind.window
-                indicator[i] = Ind.calc_func(data[i-Ind.window+1:i])
-            else 
-                indicator[i] = missing
-            end
-        end
+    @assert haskey(asset._idx, data_key)
+    src       = asset[data_key]
+    indicator = fill(NaN, length(src))
+    for i in eachindex(src)
+        i <= Ind.window && continue
+        window_vals = src[i-Ind.window+1:i]
+        any(isnan, window_vals) && continue
+        indicator[i] = Ind.calc_func(window_vals)
+    end
     return indicator
 end
 
-
-
-@doc"""
-    apply_indicator(Ind::IndicatorGenerator,asset::Asset,data_key::String,name::String)
-
-# Arguments
-- Ind: The IndicatorGenerator we fand to calculate data for.
-- asset: The Asset for which the indicator is computed.
-- data_key: The key of the data that the indicator is based on.
-- name: The name of the indicator.
-
-# Output
-The Asset with the indicator added to its data.
-```jldoctest
-Random.seed!(1234)
-SMA20=indicator_generator(simple_average,20)
-
-x=asset();
-apply_indicator(SMA20,x,"Close","SMA20")
-height(x)
-
-# output
-
-5
-```
 """
-function apply_indicator(
-    Ind::IndicatorGenerator,
-    asset::Asset,
-    data_key::String,
-    name::String
-)
+    apply_indicator(Ind, asset, data_key, name)
+
+Compute and attach a named indicator row to the asset.
+Must be called in `init`, not `next` (asset.data may be a view during backtest).
+"""
+function apply_indicator(Ind::IndicatorGenerator, asset::Asset,
+                         data_key::String, name::String)
     asset[name] = calculate_indicator(Ind, asset, data_key)
-    i = findfirst(x->x==name,asset.data_id) 
+    i = asset._idx[name]
     if i > length(asset.indicator_functions)
-        push!(asset.indicator_functions,(Ind,data_key))
+        push!(asset.indicator_functions, (Ind, data_key))
     else
-        asset.indicator_functions[i] = (Ind,data_key)
+        asset.indicator_functions[i] = (Ind, data_key)
     end
     return asset
+end
 
+"""
+    value(A::Asset, data_key="Close")
+
+Current price: last non-NaN value in the named row.
+O(1) for clean CSV data (no NaN at end), O(n_gaps) for sparse synthetic data.
+"""
+function value(A::Asset, data_key::String="Close")
+    @assert length(A) > 0 "The Asset has no data"
+    row = A._idx[data_key]
+    col = size(A.data, 2)
+    while col > 0 && isnan(A.data[row, col])
+        col -= 1
+    end
+    col == 0 && error("No valid data for $data_key in $(A.ticker)")
+    A.data[row, col]
+end
+
+function get_data(A::Asset, i::Int)
+    A.data[i, :]
+end
+
+"""
+    shorten!(A::Asset, u::UnitRange{Int})
+
+Trim asset data to the given column range (materializes views).
+"""
+function shorten!(A::Asset, u::UnitRange{Int})
+    A.data = Matrix{Float64}(A.data[:, u])
+    return A
 end
 
 """
     add_datapoint!(A::Asset, dp::DataPoint)
 
-```jldoctest
-Random.seed!(1234)
-SMA20=IndicatorGenerator(simple_average,20)
-x=asset();
-apply_indicator(SMA20,x,"Close","SMA20")
-add_datapoint!(x,DataPoint([113,113,113,113,missing]))
-length(x)
-
-# output
-
-3652
-```
+Append a new bar (column) to the asset, recomputing indicator rows.
 """
 function add_datapoint!(A::Asset, dp::DataPoint)
     @assert length(dp) == height(A)
     for i in eachindex(A.data_id)
-        @assert (isnothing(A.indicator_functions[i]) || ismissing(dp[i])) # !A || B == A => B
-        @assert (ismissing(dp[i]) || isnothing(A.indicator_functions[i]))
-     end
-    # Calculate the indicator for non-empty data points
+        @assert isnothing(A.indicator_functions[i]) || isnan(dp[i])
+    end
     for i in eachindex(A.indicator_functions)
         if !isnothing(A.indicator_functions[i])
             Ind, name = A.indicator_functions[i]
-            j = findfirst(x->x==name,A.data_id)
-            dp[i] = Ind.calc_func(A.data[j,end-Ind.window+1:end])
+            j = A._idx[name]
+            window_vals = A.data[j, end-Ind.window+1:end]
+            dp[i] = any(isnan, window_vals) ? NaN : Ind.calc_func(window_vals)
         end
-    end 
-
-    A.data = hcat(A.data,dp)
-
+    end
+    A.data = hcat(A.data, dp)
 end
-"""
-    value(A::Asset, data_key::String="Close")
-
-```jldoctest
-Random.seed!(1234)
-x=asset()
-value(x,"Close")
-
-# output
-110.21778063564074
-```
-"""
-function value(A::Asset, data_key::String="Close")
-    @assert length(A) > 0 "The Asset has no data"
-    first(Iterators.reverse((skipmissing(A[data_key]))))
-end
-
-function get_data(A::Asset, i::Int)
-    A.data[i,:]
-end
-
-
-"""
-  shorten!(A::Asset, u::UnitRange{Int})
-
-Shorten the data of an Asset to the range u.
-
-```jldoctest
-Random.seed!(1234)
-x=asset()
-shorten!(x,1:10)
-length(x)
-
-# output
-10
-```
-"""
-function shorten!(A::Asset, u::UnitRange{Int})
-    A.data = A.data[:,u]
-    return A
-end
-
-
