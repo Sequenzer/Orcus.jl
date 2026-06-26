@@ -24,7 +24,7 @@
         T = Backtest(M, SBuyStrategy, 1000)
         runTest(T)
 
-        P = T.broker.portfolio[1]
+        P = first(values(T.broker.portfolio))
 
         @test value(P)==100
         @test price(P)==110

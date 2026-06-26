@@ -68,7 +68,7 @@ function pca_multi_next(s::PCAMulti)
     requestToCloseAll!(s.broker)
 
     # Dollar-approximate sizing: allocate 1/6 of equity per leg
-    equity = s.broker.cash + sum(value(p) for p in s.broker.portfolio; init=0.0)
+    equity = s.broker.cash + sum(value(p) for p in values(s.broker.portfolio); init=0.0)
     budget = max(0.0, equity / (N_LONG + N_SHORT))
 
     for i in longs

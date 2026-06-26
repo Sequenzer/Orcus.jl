@@ -11,6 +11,7 @@ export Market,
        to_market,
        names,
        set_data_to!,
+       advance_to!,
        asset_names,
        returns_matrix,
        trim_to_length
@@ -140,31 +141,29 @@ function to_market(A::Asset)
 end
 
 """
-    set_data_to!(M, N, u)
+    advance_to!(M, i)
 
-Advance the broker's market to bar window `u` using zero-copy SubArray views
-into the base market `N`. O(N_assets) — no memory allocation.
-
-During the backtest loop, assets in `M` hold views; do not call `apply_indicator`
-or any other row-adding operation on them.
+Reveal bars `1:i` of every asset by moving its `visible` cursor — O(N_assets) integer
+writes, **zero allocation**. Each asset already holds its full price matrix; advancing the
+cursor is what the backtest loop does once per bar (replaces the old SubArray view churn).
 """
-function set_data_to!(M::Market, N::Market, u::UnitRange{Int})
-    @assert names(M) == names(N)
+function advance_to!(M::Market, i::Int)
     max_len = 0
-    for (k, v) in M.data
-        src = N.data[k].data
-        lo  = first(u)
-        hi  = min(last(u), size(src, 2))
-        if lo > hi
-            v.data = @view src[:, 1:0]
-        else
-            v.data = @view src[:, lo:hi]
-            max_len = max(max_len, hi - lo + 1)
-        end
+    for (_, a) in M.data
+        a.visible = min(i, size(a.data, 2))
+        max_len   = max(max_len, a.visible)
     end
     M._length = max_len
     return M
 end
+
+"""
+    set_data_to!(M, N, u)
+
+Back-compat shim for the old view-based API: advances `M` to reveal bars `1:last(u)` via the
+`visible` cursor (`M` already holds the full series). `N` is ignored. Prefer [`advance_to!`](@ref).
+"""
+set_data_to!(M::Market, N::Market, u::UnitRange{Int}) = advance_to!(M, last(u))
 
 """
     asset_names(M::Market) -> Vector{String}

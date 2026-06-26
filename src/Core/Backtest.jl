@@ -52,14 +52,17 @@ function runTest(BT::Backtest)
     if BT.completed
         error("Backtest already completed")
     end
-    # Initialize strategy
+    # Initialize strategy (indicators computed here, with all bars visible)
     init(BT.strategy)
     B = BT.broker
-    base_market = copy(BT.market)
+    M = B.market
+    full = 0
+    for (_, a) in M.data
+        full = max(full, size(a.data, 2))
+    end
 
-    for i in 1:length(base_market)
-       set_data_to!(B.market,base_market,1:i)
-       #println(length(BT.broker.market))
+    for i in 1:full
+        advance_to!(M, i)        # cursor advance — no copy, no per-bar allocation
         processDay!(BT)
     end
     BT.completed = true

@@ -31,10 +31,11 @@ NaN is used as the sentinel for missing/gap bars — no Union boxing.
 """
 mutable struct Asset
     ticker::String
-    data::AbstractMatrix{Float64}
+    data::Matrix{Float64}             # concrete (no views) — type-stable indexing
     data_id::Vector{String}
     _idx::Dict{String,Int}            # row-name → row index, O(1) lookup
     indicator_functions::Vector{Union{Nothing,Tuple{IndicatorGenerator,String}}}
+    visible::Int                      # bars currently revealed (cursor); 1:visible is "now"
 
     function Asset(ticker::String,
                    data::AbstractMatrix{Float64}=DataSeries(undef, 4, 0),
@@ -43,10 +44,11 @@ mutable struct Asset
         @assert size(data, 1) == length(data_id)
         this = new()
         this.ticker   = ticker
-        this.data     = data
+        this.data     = convert(Matrix{Float64}, data)
         this.data_id  = data_id
         this._idx     = Dict(id => i for (i, id) in enumerate(data_id))
         this.indicator_functions = fill(nothing, length(data_id))
+        this.visible  = size(this.data, 2)
         return this
     end
 end
@@ -78,14 +80,14 @@ Base.show(io::IO, A::Asset) = print(io, "Asset '$(A.ticker)' with $(n_datasets(A
 
 # Indexing by row index
 Base.getindex(A::Asset, key1::Int, key2::Int)     = A.data[key1, key2]
-Base.getindex(A::Asset, key1::Int, ::Colon)        = A.data[key1, :]
+Base.getindex(A::Asset, key1::Int, ::Colon)        = A.data[key1, 1:A.visible]
 Base.getindex(A::Asset, ::Colon,  key2::Int)       = A.data[:, key2]
 Base.getindex(A::Asset, ::Colon,  ::Colon)         = A.data
 
-# Indexing by name — O(1) via _idx
+# Indexing by name — O(1) via _idx; bounded to the visible window (no lookahead)
 function Base.getindex(A::Asset, key::String)
     haskey(A._idx, key) || return missing
-    A.data[A._idx[key], :]
+    A.data[A._idx[key], 1:A.visible]
 end
 
 function Base.getindex(A::Asset, key::String, ::Colon)
@@ -100,12 +102,14 @@ end
 function Base.copy(A::Asset)
     B = Asset(A.ticker, Matrix{Float64}(A.data), copy(A.data_id))
     B.indicator_functions = copy(A.indicator_functions)
+    B.visible = A.visible
     return B
 end
 
 function Base.getindex(A::Asset, r::UnitRange{Int})
     B = copy(A)
     B.data = Matrix{Float64}(A.data[:, r])
+    B.visible = size(B.data, 2)
     return B
 end
 
@@ -135,10 +139,10 @@ function Base.setindex!(A::Asset, dp::DataPoint, key1::Int, ::Colon)
     return A
 end
 
-Base.length(A::Asset)  = size(A.data, 2)
+Base.length(A::Asset)  = A.visible          # bars currently revealed (cursor)
 height(A::Asset)       = size(A.data, 1)
 n_datasets(A::Asset)   = height(A)
-Base.size(A::Asset)    = size(A.data)
+Base.size(A::Asset)    = (height(A), A.visible)
 
 """
     randOHLC(base, f, interval, precision) -> (DataSeries, Vector{String})
@@ -201,7 +205,7 @@ function calculate_indicator(Ind::IndicatorGenerator, asset::Asset, data_key::St
     for i in eachindex(src)
         i <= Ind.window && continue
         window_vals = src[i-Ind.window+1:i]
-        any(isnan, window_vals) && continue
+        all(isnan, window_vals) && continue   # only skip wholly-empty windows; NaN handling is the calc_func's job
         indicator[i] = Ind.calc_func(window_vals)
     end
     return indicator
@@ -234,7 +238,7 @@ O(1) for clean CSV data (no NaN at end), O(n_gaps) for sparse synthetic data.
 function value(A::Asset, data_key::String="Close")
     @assert length(A) > 0 "The Asset has no data"
     row = A._idx[data_key]
-    col = size(A.data, 2)
+    col = A.visible                       # scan back from the cursor — no lookahead
     while col > 0 && isnan(A.data[row, col])
         col -= 1
     end
@@ -253,6 +257,7 @@ Trim asset data to the given column range (materializes views).
 """
 function shorten!(A::Asset, u::UnitRange{Int})
     A.data = Matrix{Float64}(A.data[:, u])
+    A.visible = size(A.data, 2)
     return A
 end
 
@@ -275,4 +280,6 @@ function add_datapoint!(A::Asset, dp::DataPoint)
         end
     end
     A.data = hcat(A.data, dp)
+    A.visible = size(A.data, 2)
+    return A
 end

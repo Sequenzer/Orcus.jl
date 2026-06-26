@@ -33,10 +33,13 @@ mutable struct Trade
         self.derivative = O.derivative
         self.volume = Float64(O.volume)
         self.date = date
+        self.delta_cash = 0.0   # set by the broker at fill time
         return self
     end
     function Trade()
-        return new()
+        self = new()
+        self.delta_cash = 0.0
+        return self
     end
 end
 
