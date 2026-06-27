@@ -20,7 +20,7 @@
   @test length(B.portfolio) == 1
 
   P = first(values(B.portfolio))
-  requestToClose(P)
+  requestToCloseAll!(B)
   resolvePortfolio!(B)
   @test length(B.history) == 2
   @test length(B.portfolio) == 0
@@ -61,7 +61,7 @@ end
   O = Order(Buy(A, 10))
   placeOrder!(B, O); processOrders!(B)
   P = first(values(B.portfolio))
-  requestToClose(P); resolvePortfolio!(B)
+  requestToCloseAll!(B); resolvePortfolio!(B)
 
   # round trip at the same bar: final cash == start minus total fees, and < start
   @test B.cash < start

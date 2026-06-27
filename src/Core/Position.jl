@@ -107,7 +107,9 @@ end
 """
     requestToClose(P::Position)
 
-Flag the position to be closed on the next `resolvePortfolio!`/`processAll!`.
+Set the position's close flag. To have the broker actually close it, request the close
+through the broker API (`requestToCloseAll!`/`requestToClose!`), which also arms the broker's
+per-bar resolve; `resolvePortfolio!` skips its scan unless a broker-level close was requested.
 """
 function requestToClose(P::Position)
     P.requestToClose = true

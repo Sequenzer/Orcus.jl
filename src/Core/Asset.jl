@@ -14,6 +14,7 @@ export Asset,
     plot!,
     value,
     add_datapoint!,
+    rowindex,
     shorten!
 
 
@@ -36,6 +37,7 @@ mutable struct Asset
     _idx::Dict{String,Int}            # row-name → row index, O(1) lookup
     indicator_functions::Vector{Union{Nothing,Tuple{IndicatorGenerator,String}}}
     visible::Int                      # bars currently revealed (cursor); 1:visible is "now"
+    close_idx::Int                    # cached row index of "Close" (0 if absent) — hot path avoids the String hash
 
     function Asset(ticker::String,
                    data::AbstractMatrix{Float64}=DataSeries(undef, 4, 0),
@@ -49,6 +51,7 @@ mutable struct Asset
         this._idx     = Dict(id => i for (i, id) in enumerate(data_id))
         this.indicator_functions = fill(nothing, length(data_id))
         this.visible  = size(this.data, 2)
+        this.close_idx = get(this._idx, "Close", 0)
         return this
     end
 end
@@ -76,6 +79,14 @@ end
 
 data(A::Asset) = A.data
 
+"""
+    rowindex(A::Asset, name::String) -> Int
+
+Row index of the named series (`0` if absent). Resolve once (e.g. in a strategy's `init`) and
+read with the integer accessor `A[row, col]` to skip the per-call `String` hash on the hot path.
+"""
+rowindex(A::Asset, name::String) = get(A._idx, name, 0)
+
 Base.show(io::IO, A::Asset) = print(io, "Asset '$(A.ticker)' with $(n_datasets(A)) datasets")
 
 # Indexing by row index
@@ -86,8 +97,9 @@ Base.getindex(A::Asset, ::Colon,  ::Colon)         = A.data
 
 # Indexing by name — O(1) via _idx; bounded to the visible window (no lookahead)
 function Base.getindex(A::Asset, key::String)
-    haskey(A._idx, key) || return missing
-    A.data[A._idx[key], 1:A.visible]
+    row = get(A._idx, key, 0)
+    row == 0 && return missing
+    A.data[row, 1:A.visible]
 end
 
 function Base.getindex(A::Asset, key::String, ::Colon)
@@ -95,8 +107,9 @@ function Base.getindex(A::Asset, key::String, ::Colon)
 end
 
 function Base.getindex(A::Asset, key::String, key2::Int)
-    haskey(A._idx, key) || return missing
-    A.data[A._idx[key], key2]
+    row = get(A._idx, key, 0)
+    row == 0 && return missing
+    A.data[row, key2]
 end
 
 function Base.copy(A::Asset)
@@ -235,15 +248,18 @@ end
 Current price: last non-NaN value in the named row.
 O(1) for clean CSV data (no NaN at end), O(n_gaps) for sparse synthetic data.
 """
-function value(A::Asset, data_key::String="Close")
+value(A::Asset) = _value_at(A, A.close_idx > 0 ? A.close_idx : A._idx["Close"])
+value(A::Asset, data_key::String) = _value_at(A, A._idx[data_key])
+
+# Last non-NaN value in `row`, scanning back from the visible cursor (no lookahead).
+@inline function _value_at(A::Asset, row::Int)
     @assert length(A) > 0 "The Asset has no data"
-    row = A._idx[data_key]
-    col = A.visible                       # scan back from the cursor — no lookahead
-    while col > 0 && isnan(A.data[row, col])
+    col = A.visible
+    @inbounds while col > 0 && isnan(A.data[row, col])
         col -= 1
     end
-    col == 0 && error("No valid data for $data_key in $(A.ticker)")
-    A.data[row, col]
+    col == 0 && error("No valid data in $(A.ticker)")
+    @inbounds A.data[row, col]
 end
 
 function get_data(A::Asset, i::Int)

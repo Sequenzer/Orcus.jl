@@ -24,20 +24,21 @@ so `length(M)` is O(1) instead of scanning all assets every call.
 """
 mutable struct Market
     data::Dict{String,Asset}
+    assets::Vector{Asset}        # same Assets as `data`, contiguous for hash-free hot-path iteration
     _length::Int
 
     function Market(assets::Vector{Asset})
         this = new()
         this.data    = Dict{String,Asset}()
+        this.assets  = Asset[]
         this._length = 0
         for a in assets
-            this.data[a.ticker] = a
-            this._length = max(this._length, length(a))
+            addAsset!(this, a)
         end
         return this
     end
     Market(asset::Asset) = Market([asset])
-    Market() = new(Dict{String,Asset}(), 0)
+    Market() = new(Dict{String,Asset}(), Asset[], 0)
 end
 
 
@@ -64,8 +65,16 @@ Base.size(M::Market)   = (height(M), length(M))
 Base.names(M::Market)  = keys(M.data)
 
 function addAsset!(M::Market, A::Asset)
+    if haskey(M.data, A.ticker)                     # replacing: keep the vector in sync, no dup
+        old = M.data[A.ticker]
+        idx = findfirst(===(old), M.assets)
+        idx === nothing ? push!(M.assets, A) : (M.assets[idx] = A)
+    else
+        push!(M.assets, A)
+    end
     M.data[A.ticker] = A
     M._length = max(M._length, length(A))
+    return M
 end
 
 function addAssets!(M::Market, assets::AbstractVector{Asset})
@@ -80,9 +89,9 @@ Base.getindex(M::Market, ::Colon,   key2::Int)         = to_asset(M)[:, key2]
 Base.copy(M::Market) = Market([copy(A) for A in values(M.data)])
 
 function Base.getindex(M::Market, r::UnitRange{Int})
-    newM = copy(M)
-    for (k, v) in M.data
-        newM.data[k] = v[r]
+    newM = Market(Asset[])
+    for (_, v) in M.data
+        addAsset!(newM, v[r])
     end
     return newM
 end
@@ -149,7 +158,7 @@ cursor is what the backtest loop does once per bar (replaces the old SubArray vi
 """
 function advance_to!(M::Market, i::Int)
     max_len = 0
-    for (_, a) in M.data
+    @inbounds for a in M.assets        # contiguous Vector — no Dict hashing per bar
         a.visible = min(i, size(a.data, 2))
         max_len   = max(max_len, a.visible)
     end

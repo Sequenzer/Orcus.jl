@@ -46,23 +46,25 @@ mutable struct Broker
     cash::Float64
     market::Market
     cost_model::CostModel
-    portfolio::Dict{InstrumentKey,Position}        # instrument_key => netted Position
+    portfolio::Portfolio                           # positions grouped by concrete derivative type
     orders::Vector{Order}                          # FIFO queue
     history::Vector{Trade}
     rejected::Vector{Tuple{Order,String,Int}}      # (order, reason, bar)
     equity_history::Vector{Float64}
     _close_keys::Vector{InstrumentKey}             # reusable scratch for resolvePortfolio!
+    _pending_close::Bool                           # set when a close is requested; lets resolvePortfolio! skip the per-bar scan
     function Broker(market::Market, cash::Real; cost_model::CostModel=NoCost())
         this = new()
         this.cash           = Float64(cash)
         this.market         = market
         this.cost_model     = cost_model
-        this.portfolio      = Dict{InstrumentKey,Position}()
+        this.portfolio      = Portfolio()
         this.orders         = Vector{Order}()
         this.history        = Vector{Trade}()
         this.rejected       = Tuple{Order,String,Int}[]
         this.equity_history = Float64[]
         this._close_keys    = InstrumentKey[]
+        this._pending_close = false
         return this
     end
 end
@@ -116,7 +118,7 @@ fill into the netted `Position` for `instrument_key(O.derivative)`.
   zero. The per-unit fill price handed to `apply_trade!` is the raw `price(O.derivative)`;
   total fees are passed separately and subtracted from the position's `realized_pnl`.
 """
-function execute!(B::Broker, O::Order, date::Int=length(B); strict::Bool=false)
+function execute!(B::Broker, O::Order{D}, date::Int=length(B); strict::Bool=false) where {D<:Derivative}
     if isfulfilled(O)
         strict && error("Order already fulfilled")
         return B
@@ -140,10 +142,10 @@ function execute!(B::Broker, O::Order, date::Int=length(B); strict::Bool=false)
     push!(B.history, T)
 
     key = instrument_key(O.derivative)
-    P   = get!(() -> Position(O.derivative), B.portfolio, key)
+    P   = get_or_create!(B.portfolio, key, O.derivative)  # typed Position{D}
     P.derivative = O.derivative                           # refresh mark-to-market reference
     apply_trade!(P, O.volume, price(O.derivative), fee)
-    is_closed(P) && delete!(B.portfolio, key)
+    is_closed(P) && drop!(B.portfolio, key, D)
     return B
 end
 
@@ -206,7 +208,7 @@ A = B.market.data[collect(keys(B.market.data))[2]]
 O = Order(Sell(A,10))
 placeOrder!(B,O)
 processOrder!(B,O)
-requestToClose(first(values(B.portfolio)))
+requestToCloseAll!(B)
 resolvePortfolio!(B)
 length(B.history)
 
@@ -217,12 +219,14 @@ length(B.history)
 
 """
 function resolvePortfolio!(B::Broker)
-    # Scan for flagged positions without allocating; only when something is flagged do we
-    # collect its keys (into a reused buffer) so we can mutate the Dict safely while closing.
-    empty!(B._close_keys)
-    for (key, P) in B.portfolio
-        P.requestToClose && push!(B._close_keys, key)
-    end
+    # Fast path: nothing has been flagged since the last resolve → skip the per-bar group scan
+    # (and its dynamic dispatch) entirely. Every flag setter sets `_pending_close`.
+    B._pending_close || return B
+    # Scan for flagged positions without per-position boxing (barrier per type-group); only
+    # when something is flagged do we collect its keys into a reused buffer so we can mutate
+    # the portfolio safely while closing.
+    collect_flagged!(B._close_keys, B.portfolio)
+    B._pending_close = false
     isempty(B._close_keys) && return B
     today = length(B)
     for key in B._close_keys
@@ -248,11 +252,9 @@ function close_position!(B::Broker, key::InstrumentKey, P::Position, date::Int)
     Δ = notional - fee                                    # cash received (paid for shorts), less fees
     B.cash += Δ
 
-    T = Trade()
-    T.derivative = P.derivative
-    T.volume     = -P.net_qty
-    T.date       = date
-    T.delta_cash = Δ
+    # net_qty is 0 after the close above, so the recorded close-trade volume is 0.0 (preserves
+    # the prior behavior); the cash impact is carried by delta_cash.
+    T = Trade(P.derivative, -P.net_qty, date, Δ)
     push!(B.history, T)
 
     delete!(B.portfolio, key)
@@ -294,10 +296,7 @@ end
 function processAll!(B::Broker)
     processOrders!(B)
     resolvePortfolio!(B)
-    equity = B.cash
-    for P in values(B.portfolio)        # manual loop; ::Float64 barrier prevents boxing
-        equity += value(P)::Float64
-    end
+    equity = B.cash + total_value(B.portfolio)   # type-grouped barrier: no per-position boxing
     push!(B.equity_history, equity)
     return B
 end
@@ -348,9 +347,8 @@ end
 Flag every open position to be closed on the next `resolvePortfolio!`/`processAll!`.
 """
 function requestToCloseAll!(B::Broker)
-    for P in values(B.portfolio)
-        requestToClose(P)
-    end
+    set_all_close!(B.portfolio)   # barrier per type-group; no per-position boxing
+    B._pending_close = true
     return
 end
 
@@ -363,6 +361,7 @@ function requestToClose!(B::Broker, ticker::String)
     for P in values(B.portfolio)
         P.derivative.underlying.ticker == ticker && requestToClose(P)
     end
+    B._pending_close = true
     return
 end
 

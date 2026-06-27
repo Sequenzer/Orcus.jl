@@ -23,14 +23,14 @@ O.fulfilled
 false
 ```
 """
-mutable struct Order
-    derivative::Derivative
+mutable struct Order{D<:Derivative}
+    derivative::D
     volume::Float64
     fulfilled::Bool
     fulfillment_date::Int
 
-    function Order(derivative::Derivative, volume::Real=1)
-        this = new()
+    function Order(derivative::D, volume::Real=1) where {D<:Derivative}
+        this = new{D}()
         this.derivative = derivative
         this.volume = Float64(volume)
         this.fulfilled = false
