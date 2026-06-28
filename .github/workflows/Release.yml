@@ -1,0 +1,64 @@
+name: Release
+
+# Manually cut a GitHub release (tag + release notes). Run it from the
+# Actions tab → Release → "Run workflow".
+#
+# By default it reads the version from Project.toml. Creating the tag (v*)
+# also triggers CI on the released commit and, once the package is registered,
+# lets TagBot pick the release up.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. v0.2.0. Leave blank to use the version in Project.toml.'
+        required: false
+        type: string
+      prerelease:
+        description: 'Mark as a pre-release (alpha/beta).'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          RAW="${{ inputs.version }}"
+          if [ -z "$RAW" ]; then
+            RAW=$(grep -m1 -E '^version\s*=' Project.toml | sed -E 's/.*"([^"]+)".*/\1/')
+            echo "No version input; using Project.toml version: $RAW"
+          fi
+          # Normalise to a single leading 'v'.
+          RAW="${RAW#v}"
+          VERSION="v$RAW"
+          if [ -z "$RAW" ]; then
+            echo "::error::Could not determine a version." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VERSION"
+
+      - name: Create tag and GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "::error::Release $VERSION already exists." >&2
+            exit 1
+          fi
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --target "${{ github.sha }}" \
+            --generate-notes \
+            ${{ inputs.prerelease && '--prerelease' || '' }}

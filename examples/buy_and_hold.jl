@@ -1,4 +1,6 @@
-using Qt
+using Orcus
+using Plots
+unicodeplots()
 
 M = market([AAPL])
 

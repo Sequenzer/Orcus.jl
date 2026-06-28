@@ -8,14 +8,16 @@ export
     LongPut,
     ShortCall,
     ShortPut,
-    plot,
     printProps,
     uValue,
     value,
     name,
     absReturn,
     pctReturn,
-    logReturn
+    logReturn,
+    payoff,
+    instrument_key,
+    InstrumentKey
 
 
 
@@ -29,14 +31,23 @@ abstract type Derivative end
 
 Base.show(io::IO,D::Derivative) = print(io,"Derivative of Type '$(name(D))' on $(D.underlying.ticker)")
 
-function uValue(D::Derivative)
+@inline function uValue(D::Derivative)
     return value(D.underlying)
 end
-function value(D::Derivative)
-    return D.structure(uValue(D))
+
+"""
+    payoff(D::Derivative, x)
+
+The derivative's payoff structure evaluated at underlying value `x`. Dispatched on the
+concrete type (no boxed `Function` field), so `value(D)` is type-stable and inlinable.
+"""
+function payoff end
+
+@inline function value(D::Derivative)
+    return payoff(D, uValue(D))
 end
 function absReturn(D::Derivative)
-    return D.structure(uValue(D)-D.price)
+    return payoff(D, uValue(D) - D.price)
 end
 function pctReturn(D::Derivative) ##Check that this is correct
     return absReturn(D)/D.price
@@ -48,56 +59,27 @@ name(D::Derivative) = String(Symbol(typeof(D)))
 price(D::Derivative) = D.price
 
 """
-    plot(D::<Derivative)
+    instrument_key(D::Derivative)
 
-Plots the payoffstructure.
-
-# Examples
-```jldoctest
-Random.seed!(456);
-A=asset();
-LC=LongCall(A,value(A),10);
-plot(LC)
-# output
-
-                       KPGR, Long Call              
-         ┌────────────────────────────────────────┐ 
-      40 │                                        │ 
-         │                                       .│ 
-         │                                      .'│ 
-         │                                     :' │ 
-         │                                   .'   │ 
-         │                                 .:     │ 
-         │                                .'      │ 
-   y     │                              .:'       │ 
-         │                             .'         │ 
-         │                            :'          │ 
-         │                          .'            │ 
-         │                         :              │ 
-         │''''''''''''''''''''''':''''''''''''''''│ 
-         │                     .:'                │ 
-     -10 │.....................'                  │ 
-         └────────────────────────────────────────┘ 
-          44                                   133  
-                              x                     
-
-```
-
+Hashable identifier under which positions net. Two fills net into the same position iff
+their keys are equal: same ticker, same derivative type, same strike (options) and same
+expiry (short options). `Buy` and `Sell` on one ticker are distinct keys and do not net
+against each other.
 """
-function plot(D::Derivative)
-    f=D.structure
-    v=uValue(D)
-    x=range(v-v/2,v+v/2)
-    lineplot(
-        x,
-        f.(x).-D.price,
-        xlim= floor.(extrema(x)),
-        title=D.underlying.ticker*", "*name(D),
-        canvas=DotCanvas,
-        xlabel="x",
-        ylabel="y")
+struct InstrumentKey
+    ticker::String
+    kind::Symbol
+    strike::Union{Float64,Nothing}    # nothing for non-option legs
+    expiry::Union{Int,Nothing}        # nothing unless a dated (short) option
 end
- 
+
+instrument_key(D::Derivative) = InstrumentKey(
+    D.underlying.ticker,
+    nameof(typeof(D)),
+    hasproperty(D, :strike)      ? Float64(D.strike)  : nothing,
+    hasproperty(D, :expiry_days) ? Int(D.expiry_days) : nothing,
+)
+
 """
     printProps(D::Derivative)
 
@@ -171,108 +153,106 @@ macro generateDerivative(Name::Symbol, structure::Expr, price_func::Expr)
     strct = quote
         mutable struct $Name <: Derivative
             underlying::Asset
-            structure::Function
-            price::Number
+            price::Float64
             function $Name(underlying::Asset,premium::Number=0)
                 this = new()
                 this.underlying=underlying
-                this.structure = $structure
-                this.price = $price_func(value(underlying),premium) 
+                this.price = Float64($price_func(value(underlying),premium))
                 return this
             end
         end
+        # payoff dispatched on the concrete type — no boxed Function field
+        Orcus.payoff(::$Name, x) = ($structure)(x)
     end
     return eval(quote
         export $Name
-    
+
         $strct
     end)
 end
 
 mutable struct Buy <: Derivative
     underlying::Asset
-    structure::Function
-    price::Number
+    price::Float64
     function Buy(underlying::Asset,premium::Number=0)
         this = new()
         this.underlying=underlying
-        this.structure = x->x
-        this.price = value(underlying) + premium 
+        this.price = value(underlying) + premium
         return this
     end
 end
-
-
+@inline payoff(::Buy, x) = x
 
 mutable struct Sell <: Derivative
     underlying::Asset
-    structure::Function
-    price::Number
+    price::Float64
     function Sell(underlying::Asset,premium::Number=0)
         this = new()
         this.underlying=underlying
-        this.structure = x->-x
-        this.price = -value(underlying) + premium 
+        this.price = -value(underlying) + premium
         return this
     end
 end
+@inline payoff(::Sell, x) = -x
 
 mutable struct LongCall <: Derivative
     underlying::Asset
-    structure::Function
-    price::Number
-    strike::Number
+    price::Float64
+    strike::Float64
     function LongCall(underlying::Asset,strike::Number,premium::Number=0)
         this = new()
         this.underlying=underlying
-        this.structure = x-> max(x-strike,0)
-        this.price = premium 
+        this.price = premium
         this.strike = strike
         return this
     end
 end
+payoff(d::LongCall, x) = max(x - d.strike, 0.0)
 
 mutable struct LongPut <: Derivative
     underlying::Asset
-    structure::Function
-    price::Number
-    strike::Number
+    price::Float64
+    strike::Float64
     function LongPut(underlying::Asset,strike::Number,premium::Number=0)
         this = new()
         this.underlying=underlying
-        this.structure = x-> max(-x+strike,0)
-        this.price = premium 
+        this.price = premium
         this.strike = strike
         return this
     end
 end
+payoff(d::LongPut, x) = max(-x + d.strike, 0.0)
 
 mutable struct ShortCall <: Derivative
     underlying::Asset
-    structure::Function
-    price::Number
-    strike::Number
-    function ShortCall(underlying::Asset,strike::Number,premium::Number=0)
+    price::Float64
+    strike::Float64
+    expiry_days::Int    # calendar days to expiry (used by live layer for OCC symbol)
+    function ShortCall(underlying::Asset, strike::Number,
+                       premium::Number=0, expiry_days::Int=30)
         this = new()
-        this.underlying=underlying
-        this.structure = x-> min(-x+strike,0)
-        this.price = -premium 
-        this.strike = strike
+        this.underlying  = underlying
+        this.price       = -premium
+        this.strike      = strike
+        this.expiry_days = expiry_days
         return this
     end
 end
+payoff(d::ShortCall, x) = min(-x + d.strike, 0.0)
 
 mutable struct ShortPut <: Derivative
     underlying::Asset
-    structure::Function
-    price::Number
-    strike::Number
-    function ShortPut(underlying::Asset,strike::Number,premium::Number=0)
+    price::Float64
+    strike::Float64
+    expiry_days::Int    # calendar days to expiry (used by live layer for OCC symbol)
+    function ShortPut(underlying::Asset, strike::Number,
+                      premium::Number=0, expiry_days::Int=30)
         this = new()
-        this.underlying=underlying
-        this.structure = x-> min(x-strike,0)
-        this.price = -premium 
-        this.strike = strike
+        this.underlying  = underlying
+        this.price       = -premium
+        this.strike      = strike
+        this.expiry_days = expiry_days
         return this
     end
 end
+payoff(d::ShortPut, x) = min(x - d.strike, 0.0)

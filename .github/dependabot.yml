@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    # Bundle all action bumps into a single PR instead of one per action.
+    groups:
+      github-actions:
+        patterns:
+          - "*"

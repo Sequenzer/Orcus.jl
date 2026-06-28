@@ -1,0 +1,6 @@
+[deps]
+Orcus = "45350dae-0ff4-4403-bb65-d8c585f51100"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"

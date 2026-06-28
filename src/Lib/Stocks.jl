@@ -1,6 +1,6 @@
 #Binding for the stocks in ./data/(name).csv
 
-export load_stock,AAPL,GOOG
+export load_stock, load_stocks, available_stocks, AAPL, GOOG
 
 """
     load_stock(name::String)
@@ -15,8 +15,33 @@ load_stock("GOOG")
 const _STOCKS_DATA_DIR = joinpath(@__DIR__, "data")
 
 function load_stock(name::String)
-    dt = CSV.File(joinpath(_STOCKS_DATA_DIR, "$(name).csv"))
+    dt = read_stock_csv(joinpath(_STOCKS_DATA_DIR, "$(name).csv"))
     return asset(dt, name)
+end
+
+# Minimal reader for the sample stock CSVs: a header row of column names followed by
+# comma-separated rows. The `date` column is parsed as `Date`, every other column as
+# `Float64`. Returns a `NamedTuple` of columns so downstream code can use `nt[:date]`,
+# `propertynames(nt)`, and `hasproperty`. Avoids a CSV.jl dependency for the few fixtures
+# we ship; it is not a general-purpose CSV parser (no quoting, no embedded commas).
+function read_stock_csv(path::String)
+    lines = readlines(path)
+    isempty(lines) && error("empty CSV file: $path")
+    header = Symbol.(split(lines[1], ','))
+    cols   = [Vector{String}() for _ in header]
+    for ln in @view lines[2:end]
+        isempty(ln) && continue
+        fields = split(ln, ',')
+        length(fields) == length(header) ||
+            error("malformed row in $path: $ln")
+        for (c, f) in zip(cols, fields)
+            push!(c, f)
+        end
+    end
+    parsed = map(header, cols) do name, col
+        name === :date ? parse.(Date, col) : parse.(Float64, col)
+    end
+    return NamedTuple{Tuple(header)}(Tuple(parsed))
 end
 
 
@@ -35,27 +60,48 @@ end
 
 
 
-function asset(fl::CSV.File, name::String="Asset")
-  @assert hasproperty(fl, :date) "The CSV file must have a date column"
-  index = to_index(fl[:date])
+function asset(fl::NamedTuple, name::String="Asset")
+    @assert hasproperty(fl, :date) "The CSV file must have a date column"
+    index = to_index(fl[:date])
+    nms   = collect(filter(x -> x !== :date, propertynames(fl)))
+    data  = DataPoint[]
 
-  data = DataPoint[]
-
-  names = filter(x -> x!==:date,propertynames(fl))
-
-  for n in names
-    v = DataPoint(fill(missing, index[end]))
-    dt = reverse(fl[n])
-    for i in 1:length(fl[:date])
-      v[index[i]] = dt[i]
+    for n in nms
+        v  = fill(NaN, index[end])      # NaN = no data for this bar
+        dt = reverse(fl[n])
+        for i in 1:length(fl[:date])
+            v[index[i]] = Float64(dt[i])
+        end
+        push!(data, v)
     end
-    push!(data, DataPoint(v))
-  end
-  return asset(name, data_series(data), uppercasefirst.(String.(names)))
+    return asset(name, data_series(data), uppercasefirst.(String.(nms)))
 end
 
-AAPL = load_stock("AAPL")
-GOOG = load_stock("GOOG")
+"""
+    available_stocks() -> Vector{String}
+
+List all stock tickers available in the data directory.
+"""
+available_stocks() = sort([splitext(f)[1]
+    for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
+
+"""
+    load_stocks(names::Vector{String}) -> Market
+
+Load multiple stocks by ticker name and return them as a Market.
+All tickers must exist in the data directory (see `available_stocks()`).
+"""
+function load_stocks(names::Vector{String})
+    market([load_stock(n) for n in names])
+end
+
+# Shared, mutable sample fixtures. A backtest's `init` can mutate an Asset in place
+# (e.g. `apply_indicator` grows `asset.data`), so do NOT run strategies directly against
+# these — wrap a copy: `market([copy(AAPL)])`. `batch_backtest` copies the market per job,
+# so sweeps over these are safe. `const` here is for binding type-stability, not immutability
+# of the underlying Asset.
+const AAPL = load_stock("AAPL")
+const GOOG = load_stock("GOOG")
 
 
 

@@ -1,4 +1,6 @@
-using Qt
+using Orcus
+using Plots
+unicodeplots()
 
 M = market([GOOG])
 
@@ -13,10 +15,10 @@ function cross_next(s::Strategy)
     for (_, a) in s.market.data
         n = length(a)
         n < 2 && continue
-        ismissing(a["SMA10", n])   && continue
-        ismissing(a["SMA20", n])   && continue
-        ismissing(a["SMA10", n-1]) && continue
-        ismissing(a["SMA20", n-1]) && continue
+        isnan(a["SMA10", n])   && continue
+        isnan(a["SMA20", n])   && continue
+        isnan(a["SMA10", n-1]) && continue
+        isnan(a["SMA20", n-1]) && continue
 
         crossed_up   = a["SMA10", n] >  a["SMA20", n] && a["SMA10", n-1] <= a["SMA20", n-1]
         crossed_down = a["SMA10", n] <  a["SMA20", n] && a["SMA10", n-1] >= a["SMA20", n-1]
