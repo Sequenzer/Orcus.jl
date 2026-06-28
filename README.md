@@ -13,7 +13,7 @@ using Pkg
 Pkg.add(url="https://github.com/<your-org>/Orcus.jl")
 ```
 
-Requires Julia ≥ 1.7.
+Requires Julia ≥ 1.10.
 
 ## Quick start
 
