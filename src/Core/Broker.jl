@@ -294,9 +294,10 @@ function processOrders!(B::Broker)
 end
 
 function processAll!(B::Broker)
-    processOrders!(B)
-    resolvePortfolio!(B)
-    equity = B.cash + total_value(B.portfolio)   # type-grouped barrier: no per-position boxing
+    @inline
+    isempty(B.orders) || processOrders!(B)        # skip the call entirely on no-order bars
+    B._pending_close  && resolvePortfolio!(B)      # skip the call entirely on no-close bars
+    equity = B.cash + total_value(B.portfolio)     # type-grouped barrier: no per-position boxing
     push!(B.equity_history, equity)
     return B
 end

@@ -2,6 +2,7 @@ name = "Orcus"
 uuid = "45350dae-0ff4-4403-bb65-d8c585f51100"
 version = "0.1.0"
 authors = ["Marcel Wack <wac.marcel@gmail.com> and contributors"]
+license = "GPL-3.0-or-later"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"

@@ -32,7 +32,7 @@ abstract type Derivative end
 
 Base.show(io::IO,D::Derivative) = print(io,"Derivative of Type '$(name(D))' on $(D.underlying.ticker)")
 
-function uValue(D::Derivative)
+@inline function uValue(D::Derivative)
     return value(D.underlying)
 end
 
@@ -44,7 +44,7 @@ concrete type (no boxed `Function` field), so `value(D)` is type-stable and inli
 """
 function payoff end
 
-function value(D::Derivative)
+@inline function value(D::Derivative)
     return payoff(D, uValue(D))
 end
 function absReturn(D::Derivative)
@@ -233,7 +233,7 @@ mutable struct Buy <: Derivative
         return this
     end
 end
-payoff(::Buy, x) = x
+@inline payoff(::Buy, x) = x
 
 mutable struct Sell <: Derivative
     underlying::Asset
@@ -245,7 +245,7 @@ mutable struct Sell <: Derivative
         return this
     end
 end
-payoff(::Sell, x) = -x
+@inline payoff(::Sell, x) = -x
 
 mutable struct LongCall <: Derivative
     underlying::Asset

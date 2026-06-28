@@ -248,12 +248,12 @@ end
 Current price: last non-NaN value in the named row.
 O(1) for clean CSV data (no NaN at end), O(n_gaps) for sparse synthetic data.
 """
-value(A::Asset) = _value_at(A, A.close_idx > 0 ? A.close_idx : A._idx["Close"])
-value(A::Asset, data_key::String) = _value_at(A, A._idx[data_key])
+@inline value(A::Asset) = _value_at(A, A.close_idx > 0 ? A.close_idx : A._idx["Close"])
+@inline value(A::Asset, data_key::String) = _value_at(A, A._idx[data_key])
 
 # Last non-NaN value in `row`, scanning back from the visible cursor (no lookahead).
+# The `col == 0` guard also covers the empty/all-NaN asset (no separate length assert needed).
 @inline function _value_at(A::Asset, row::Int)
-    @assert length(A) > 0 "The Asset has no data"
     col = A.visible
     @inbounds while col > 0 && isnan(A.data[row, col])
         col -= 1

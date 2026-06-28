@@ -1,0 +1,35 @@
+name: Format Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: JuliaFormatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Install JuliaFormatter and format
+        shell: julia --color=yes {0}
+        run: |
+          using Pkg
+          Pkg.add(PackageSpec(name="JuliaFormatter"))
+          using JuliaFormatter
+          format(".", verbose=true)
+      - name: Check for formatting differences
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Code is not formatted. Run 'using JuliaFormatter; format(\".\")' locally and commit."
+            git diff --color=always
+            exit 1
+          fi

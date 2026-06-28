@@ -59,7 +59,7 @@ Base.show(io::IO, P::Position) = is_closed(P) ?
     print(io, "An open position of $(P.net_qty) $(name(P.derivative)) on $(P.derivative.underlying.ticker)")
 
 volume(P::Position)    = P.net_qty
-value(P::Position)     = P.net_qty * value(P.derivative)
+@inline value(P::Position) = P.net_qty * value(P.derivative)
 uValue(P::Position)    = P.net_qty * uValue(P.derivative)
 price(P::Position)     = P.net_qty * P.avg_cost                 # cost basis
 absReturn(P::Position) = value(P) - price(P)                    # unrealized

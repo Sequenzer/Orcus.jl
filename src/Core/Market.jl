@@ -156,7 +156,7 @@ Reveal bars `1:i` of every asset by moving its `visible` cursor — O(N_assets) 
 writes, **zero allocation**. Each asset already holds its full price matrix; advancing the
 cursor is what the backtest loop does once per bar (replaces the old SubArray view churn).
 """
-function advance_to!(M::Market, i::Int)
+@inline function advance_to!(M::Market, i::Int)
     max_len = 0
     @inbounds for a in M.assets        # contiguous Vector — no Dict hashing per bar
         a.visible = min(i, size(a.data, 2))

@@ -43,10 +43,10 @@ backtest(market::Market, strategy::Type, cash::Real=1000) = Backtest(market,stra
 
 
 
-function processDay!(BT::Backtest)
+@inline function processDay!(BT::Backtest)
     processAll!(BT.broker)
     next(BT.strategy)
-    return 
+    return
 end
 function runTest(BT::Backtest)
     if BT.completed
@@ -57,9 +57,10 @@ function runTest(BT::Backtest)
     B = BT.broker
     M = B.market
     full = 0
-    for (_, a) in M.data
+    for a in M.assets
         full = max(full, size(a.data, 2))
     end
+    sizehint!(B.equity_history, full)   # preallocate — per-bar push never reallocates
 
     for i in 1:full
         advance_to!(M, i)        # cursor advance — no copy, no per-bar allocation

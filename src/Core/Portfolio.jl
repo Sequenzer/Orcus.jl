@@ -32,18 +32,21 @@ Group{D}() where {D<:Derivative} = Group{D}(Position{D}[], InstrumentKey[], Dict
 """
     Portfolio
 
-Netted positions grouped by concrete derivative type. `groups[D]::Group{D}` (stored behind
-`Any` at the outer level so the container is open to user-defined derivative types). `n` caches
-the total open-position count for O(1) `length`; `_acc` is a reused scratch accumulator so the
-per-group barrier returns `nothing` (no boxed return).
+Netted positions grouped by concrete derivative type. `groups` is a `Vector` of `Group{D}`
+objects (one per distinct derivative type — typically 1–2), held behind `Any` so the container
+is open to user-defined derivative types. A bare Vector, not a Dict: per-bar iteration is a
+direct 1–2 element walk (no hash-slot scan), and per-order type lookup is a short linear scan
+that beats hashing a `DataType`. `n` caches the total open-position count for O(1) `length`;
+`_acc` is a reused scratch accumulator so the per-group barrier returns `nothing` (no boxed
+return).
 """
 mutable struct Portfolio
-    groups::Dict{DataType,Any}   # concrete D => Group{D}
+    groups::Vector{Any}          # Group{D} objects, one per concrete derivative type
     n::Int
     _acc::Float64
 end
 
-Portfolio() = Portfolio(Dict{DataType,Any}(), 0, 0.0)
+Portfolio() = Portfolio(Any[], 0, 0.0)
 
 # ── hot path: equity mark ─────────────────────────────────────────────────────
 """
@@ -53,41 +56,42 @@ Sum of `value(P)` over all open positions. The per-group barrier writes into `_a
 returns `nothing` (no boxed return); the inner loop is a contiguous, allocation-free scan.
 """
 function total_value(pf::Portfolio)
-    pf._acc = 0.0
-    for g in values(pf.groups)        # g::Any
-        _dispatch_group_value!(pf, g)
+    s = 0.0
+    for g in pf.groups                # g::Any — direct Vector walk
+        # Union-split the built-in linear types: the `isa` branches are statically typed, so
+        # `_group_sum` is specialized, inlined, and returns `Float64` directly (no boxed
+        # return) — covering the overwhelmingly common Buy/Sell case. Open-world types take the
+        # `else` branch, which routes through the `_acc` scratch field to dodge the boxed return
+        # of the one runtime dispatch.
+        if g isa Group{Buy}
+            s += _group_sum(g)
+        elseif g isa Group{Sell}
+            s += _group_sum(g)
+        else
+            pf._acc = 0.0
+            _add_group_value!(pf, g)
+            s += pf._acc
+        end
     end
-    return pf._acc
+    return s
 end
-
-# Union-split the built-in linear types: the `isa` branches are statically typed, so
-# `_add_group_value!` is specialized and inlined with no runtime dispatch — covering the
-# overwhelmingly common Buy/Sell case. Open-world types fall through to one runtime dispatch.
-@inline function _dispatch_group_value!(pf::Portfolio, g)
-    if g isa Group{Buy}
-        _add_group_value!(pf, g)
-    elseif g isa Group{Sell}
-        _add_group_value!(pf, g)
-    else
-        _add_group_value!(pf, g)
-    end
-end
-_add_group_value!(pf::Portfolio, g::Group{D}) where {D} = begin
+@inline _group_sum(g::Group{D}) where {D} = begin
     s = 0.0
     @inbounds for P in g.positions    # contiguous; P::Position{D} concrete → no box
         s += value(P)
     end
-    pf._acc += s
-    return nothing
+    s
 end
+# Open-world fallback: accumulate into `_acc` so the runtime-dispatched call returns `nothing`.
+_add_group_value!(pf::Portfolio, g::Group{D}) where {D} = (pf._acc += _group_sum(g); nothing)
 
 # ── per-order: locate/create the typed group and position ─────────────────────
 @inline function _group!(pf::Portfolio, ::Type{D}) where {D<:Derivative}
-    if haskey(pf.groups, D)
-        return pf.groups[D]::Group{D}
+    for g in pf.groups
+        g isa Group{D} && return g       # `isa` narrows g → type-stable return
     end
     g = Group{D}()
-    pf.groups[D] = g
+    push!(pf.groups, g)
     return g
 end
 
@@ -138,7 +142,7 @@ drop!(pf::Portfolio, key::InstrumentKey, ::Type{D}) where {D<:Derivative} =
 
 # Generic delete (group unknown, e.g. close-outs) — scans groups; cold relative to the bar.
 function Base.delete!(pf::Portfolio, key::InstrumentKey)
-    for g in values(pf.groups)
+    for g in pf.groups
         _del_from_group!(pf, g, key) && return pf
     end
     return pf
@@ -154,7 +158,7 @@ type-group; the inner scan is a contiguous, allocation-free walk of parallel vec
 """
 function collect_flagged!(buf::Vector{InstrumentKey}, pf::Portfolio)
     empty!(buf)
-    for g in values(pf.groups)
+    for g in pf.groups
         _collect_flagged!(buf, g)
     end
     return buf
@@ -171,7 +175,7 @@ end
 Flag every open position for close. Barrier per type-group.
 """
 function set_all_close!(pf::Portfolio)
-    for g in values(pf.groups)
+    for g in pf.groups
         _set_all_close!(g)
     end
     return pf
@@ -191,7 +195,7 @@ Base.isempty(pf::Portfolio) = pf.n == 0
 function Base.values(pf::Portfolio)
     out = Vector{Position}(undef, pf.n)
     i = 0
-    for g in values(pf.groups)
+    for g in pf.groups
         i = _append_values!(out, g, i)
     end
     return out
@@ -206,7 +210,7 @@ end
 function Base.keys(pf::Portfolio)
     out = Vector{InstrumentKey}(undef, pf.n)
     i = 0
-    for g in values(pf.groups)
+    for g in pf.groups
         i = _append_keys!(out, g, i)
     end
     return out
@@ -218,11 +222,11 @@ _append_keys!(out, g::Group{D}, i) where {D} = begin
     i
 end
 
-Base.haskey(pf::Portfolio, key::InstrumentKey) = any(g -> _haskey(g, key), values(pf.groups))
+Base.haskey(pf::Portfolio, key::InstrumentKey) = any(g -> _haskey(g, key), pf.groups)
 _haskey(g::Group{D}, key) where {D} = haskey(g.index, key)
 
 function Base.getindex(pf::Portfolio, key::InstrumentKey)
-    for g in values(pf.groups)
+    for g in pf.groups
         P = _get(g, key)
         P === nothing || return P
     end

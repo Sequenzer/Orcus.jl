@@ -1,5 +1,8 @@
 # Orcus.jl
 
+[![CI](https://github.com/Sequenzer/Orcus.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/Sequenzer/Orcus.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/Sequenzer/Orcus.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Sequenzer/Orcus.jl)
+
 A quantitative backtesting engine for Julia. Write a strategy as two functions, run it
 bar-by-bar over historical data, and inspect the equity curve, trades, and portfolio.
 
@@ -74,4 +77,20 @@ julia --project -e 'using Pkg; Pkg.test()'
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Orcus.jl is free software, licensed under the **GNU General Public License v3.0** — see
+[LICENSE](LICENSE).
+
+You may use, study, share, and modify it freely, including for private and educational
+purposes. The copyleft terms require that any distributed derivative work is also released
+under the GPLv3, so everyone downstream keeps the same freedoms.
+
+    Copyright (C) 2022 Marcel Wack <wac.marcel@gmail.com> and contributors
+
+    This program is free software: you can redistribute it and/or modify it under
+    the terms of the GNU General Public License as published by the Free Software
+    Foundation, either version 3 of the License, or (at your option) any later
+    version.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT ANY
+    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+    PARTICULAR PURPOSE. See the GNU General Public License for more details.
