@@ -15,8 +15,8 @@ load_stock("GOOG")
 const _STOCKS_DATA_DIR = joinpath(@__DIR__, "data")
 
 function load_stock(name::String)
-    dt = read_stock_csv(joinpath(_STOCKS_DATA_DIR, "$(name).csv"))
-    return asset(dt, name)
+  dt = read_stock_csv(joinpath(_STOCKS_DATA_DIR, "$(name).csv"))
+  return asset(dt, name)
 end
 
 # Minimal reader for the sample stock CSVs: a header row of column names followed by
@@ -25,56 +25,52 @@ end
 # `propertynames(nt)`, and `hasproperty`. Avoids a CSV.jl dependency for the few fixtures
 # we ship; it is not a general-purpose CSV parser (no quoting, no embedded commas).
 function read_stock_csv(path::String)
-    lines = readlines(path)
-    isempty(lines) && error("empty CSV file: $path")
-    header = Symbol.(split(lines[1], ','))
-    cols   = [Vector{String}() for _ in header]
-    for ln in @view lines[2:end]
-        isempty(ln) && continue
-        fields = split(ln, ',')
-        length(fields) == length(header) ||
-            error("malformed row in $path: $ln")
-        for (c, f) in zip(cols, fields)
-            push!(c, f)
-        end
+  lines = readlines(path)
+  isempty(lines) && error("empty CSV file: $path")
+  header = Symbol.(split(lines[1], ','))
+  cols = [Vector{String}() for _ in header]
+  for ln in @view lines[2:end]
+    isempty(ln) && continue
+    fields = split(ln, ',')
+    length(fields) == length(header) ||
+      error("malformed row in $path: $ln")
+    for (c, f) in zip(cols, fields)
+      push!(c, f)
     end
-    parsed = map(header, cols) do name, col
-        name === :date ? parse.(Date, col) : parse.(Float64, col)
-    end
-    return NamedTuple{Tuple(header)}(Tuple(parsed))
+  end
+  parsed = map(header, cols) do name, col
+    name === :date ? parse.(Date, col) : parse.(Float64, col)
+  end
+  return NamedTuple{Tuple(header)}(Tuple(parsed))
 end
-
 
 function to_index(v::Vector{Dates.Date})
-    if issorted(v)
-      mi = Dates.value(v[1])
-    elseif issorted(v,rev=true)
-      return to_index(reverse(v))
-    else
-      return to_index(sort!(v))
-    end
+  if issorted(v)
+    mi = Dates.value(v[1])
+  elseif issorted(v; rev=true)
+    return to_index(reverse(v))
+  else
+    return to_index(sort!(v))
+  end
 
-    return [Dates.value(d)-mi+1 for d in v]
+  return [Dates.value(d) - mi + 1 for d in v]
 end
 
-
-
-
 function asset(fl::NamedTuple, name::String="Asset")
-    @assert hasproperty(fl, :date) "The CSV file must have a date column"
-    index = to_index(fl[:date])
-    nms   = collect(filter(x -> x !== :date, propertynames(fl)))
-    data  = DataPoint[]
+  @assert hasproperty(fl, :date) "The CSV file must have a date column"
+  index = to_index(fl[:date])
+  nms = collect(filter(x -> x !== :date, propertynames(fl)))
+  data = DataPoint[]
 
-    for n in nms
-        v  = fill(NaN, index[end])      # NaN = no data for this bar
-        dt = reverse(fl[n])
-        for i in 1:length(fl[:date])
-            v[index[i]] = Float64(dt[i])
-        end
-        push!(data, v)
+  for n in nms
+    v = fill(NaN, index[end])      # NaN = no data for this bar
+    dt = reverse(fl[n])
+    for i in 1:length(fl[:date])
+      v[index[i]] = Float64(dt[i])
     end
-    return asset(name, data_series(data), uppercasefirst.(String.(nms)))
+    push!(data, v)
+  end
+  return asset(name, data_series(data), uppercasefirst.(String.(nms)))
 end
 
 """
@@ -83,7 +79,7 @@ end
 List all stock tickers available in the data directory.
 """
 available_stocks() = sort([splitext(f)[1]
-    for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
+      for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
 
 """
     load_stocks(names::Vector{String}) -> Market
@@ -92,7 +88,7 @@ Load multiple stocks by ticker name and return them as a Market.
 All tickers must exist in the data directory (see `available_stocks()`).
 """
 function load_stocks(names::Vector{String})
-    market([load_stock(n) for n in names])
+  market([load_stock(n) for n in names])
 end
 
 # Shared, mutable sample fixtures. A backtest's `init` can mutate an Asset in place
@@ -102,6 +98,3 @@ end
 # of the underlying Asset.
 const AAPL = load_stock("AAPL")
 const GOOG = load_stock("GOOG")
-
-
-

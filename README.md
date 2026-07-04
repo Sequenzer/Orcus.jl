@@ -18,7 +18,7 @@ Requires Julia ≥ 1.10.
 ## Quick start
 
 A strategy is two functions — `init` (run once) and `next` (run once per bar) — registered
-with `@generateStrategy`. Inside them, reach the portfolio via `s.broker` and the price data
+with `@generate_strategy`. Inside them, reach the portfolio via `s.broker` and the price data
 via `s.market`.
 
 ```julia
@@ -39,16 +39,16 @@ function cross_next(s::Strategy)
         n < 2 && continue
         crossed_up = a["SMA10", n] > a["SMA20", n] && a["SMA10", n-1] <= a["SMA20", n-1]
         if crossed_up
-            requestToCloseAll!(s.broker)
-            placeOrder!(s.broker, Order(Buy(a, 5)))
+            request_to_close_all!(s.broker)
+            place_order!(s.broker, Order(Buy(a, 5)))
         end
     end
 end
 
-@generateStrategy SMAcrossover cross_next cross_init
+@generate_strategy SMAcrossover cross_next cross_init
 
 bt = Backtest(M, SMAcrossover, 10_000)   # 10k starting cash
-runTest(bt)
+run_test(bt)
 
 println(bt)
 status(bt.broker)
@@ -58,7 +58,7 @@ plot(bt)
 ## What's included
 
 - **Core** — `Asset`, `Market`, `Broker`, `Order`, `Trade`, `Position`, the `Strategy`
-  abstraction (`@generateStrategy`), the `Backtest` runner, and derivatives
+  abstraction (`@generate_strategy`), the `Backtest` runner, and derivatives
   (`Buy`/`Sell`/`LongCall`/`LongPut`/`ShortCall`/`ShortPut`).
 - **Lib** — sample stock data loaders (`load_stock`, `load_stocks`, `available_stocks`) and
   example strategies.

@@ -1,8 +1,7 @@
 
 export IndicatorGenerator,
-    indicator_generator,
-    simple_average
-
+  indicator_generator,
+  simple_average
 
 """
     IndicatorGenerator(f::Function,window::Int)
@@ -21,25 +20,22 @@ SMA10.window
 ```
 """
 mutable struct IndicatorGenerator
-    calc_func::Function
-    window::Int
+  calc_func::Function
+  window::Int
 
-    function IndicatorGenerator(
-        calc_func::Function,
-        window::Int=1
-    )
-        this = new()
-        this.calc_func = calc_func
-        this.window = window
-        return this
-    end
-
+  function IndicatorGenerator(
+    calc_func::Function,
+    window::Int=1,
+  )
+    this = new()
+    this.calc_func = calc_func
+    this.window = window
+    return this
+  end
 end
 
-indicator_generator(calc_func::Function, window::Int=1) = IndicatorGenerator(calc_func, window)
-
-
-
+indicator_generator(calc_func::Function, window::Int=1) =
+  IndicatorGenerator(calc_func, window)
 
 """
 
@@ -47,5 +43,3 @@ simple_average([1,missing,3,4])
 
 """
 simple_average(data::DataPoint)::Float64 = mean(filter(!isnan, data))
-
-

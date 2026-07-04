@@ -29,13 +29,13 @@ Keyword arguments:
 - `progress`  – when `true`, log elapsed time and ETA as jobs complete (default `false`, quiet).
 """
 function batch_backtest(market::Market, strategy::Type, cash::Real,
-                        grid::AbstractVector;
-                        threaded::Bool=true, cost_model::CostModel=NoCost(),
-                        progress::Bool=false)
-    return batch_backtest(length(grid); threaded=threaded, progress=progress) do i
-        M = copy(market)                      # private market → private cursor + indicators
-        run_test(Backtest(M, strategy, cash; params=grid[i], cost_model=cost_model))
-    end
+  grid::AbstractVector;
+  threaded::Bool=true, cost_model::CostModel=NoCost(),
+  progress::Bool=false)
+  return batch_backtest(length(grid); threaded=threaded, progress=progress) do i
+    M = copy(market)                      # private market → private cursor + indicators
+    run_test(Backtest(M, strategy, cash; params=grid[i], cost_model=cost_model))
+  end
 end
 
 """
@@ -53,32 +53,33 @@ end
 ```
 """
 function batch_backtest(builder, n::Integer; threaded::Bool=true, progress::Bool=false)
-    results = Vector{Backtest}(undef, n)
-    use_threads = threaded && Threads.nthreads() > 1
+  results = Vector{Backtest}(undef, n)
+  use_threads = threaded && Threads.nthreads() > 1
 
-    t0   = time()
-    done = Threads.Atomic{Int}(0)
-    plock = ReentrantLock()
-    report = i -> begin
-        progress || return
-        c = Threads.atomic_add!(done, 1) + 1
-        lock(plock) do
-            el  = time() - t0
-            eta = c == n ? 0.0 : el * (n - c) / c
-            @printf("[batch_backtest] %d/%d  elapsed %.1fs  eta %.1fs\n", c, n, el, eta)
-        end
+  t0 = time()
+  done = Threads.Atomic{Int}(0)
+  plock = ReentrantLock()
+  report =
+    i -> begin
+      progress || return nothing
+      c = Threads.atomic_add!(done, 1) + 1
+      lock(plock) do
+        el = time() - t0
+        eta = c == n ? 0.0 : el * (n - c) / c
+        @printf("[batch_backtest] %d/%d  elapsed %.1fs  eta %.1fs\n", c, n, el, eta)
+      end
     end
 
-    if use_threads
-        Threads.@threads :dynamic for i in 1:n
-            results[i] = builder(i)
-            report(i)
-        end
-    else
-        for i in 1:n
-            results[i] = builder(i)
-            report(i)
-        end
+  if use_threads
+    Threads.@threads :dynamic for i in 1:n
+      results[i] = builder(i)
+      report(i)
     end
-    return results
+  else
+    for i in 1:n
+      results[i] = builder(i)
+      report(i)
+    end
+  end
+  return results
 end

@@ -9,10 +9,10 @@ using Printf
 using Tables
 
 export
-    Dates,
-    Random,
-    Statistics,
-    Tables
+  Dates,
+  Random,
+  Statistics,
+  Tables
 
 include("Core/Utils.jl")
 include("Core/Indicator.jl")
@@ -42,13 +42,7 @@ include("Analytics/Options.jl")
 include("Recipes.jl")
 
 function __init__()
-    println(stderr, "Orcus v$(pkgversion(@__MODULE__)) initialized.")
+  println(stderr, "Orcus v$(pkgversion(@__MODULE__)) initialized.")
 end
 
-
-
-
 end
-
-
-

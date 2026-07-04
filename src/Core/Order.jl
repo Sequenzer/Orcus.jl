@@ -1,12 +1,11 @@
 
-export 
-    Order,
-    order,
-    price,
-    fulfill,
-    volume,
-    isfulfilled
-
+export
+  Order,
+  order,
+  price,
+  fulfill,
+  volume,
+  isfulfilled
 
 """
     Order(derivative::Derivative, volume::Real=1)
@@ -24,24 +23,25 @@ false
 ```
 """
 mutable struct Order{D<:Derivative}
-    derivative::D
-    volume::Float64
-    fulfilled::Bool
-    fulfillment_date::Int
+  derivative::D
+  volume::Float64
+  fulfilled::Bool
+  fulfillment_date::Int
 
-    function Order(derivative::D, volume::Real=1) where {D<:Derivative}
-        this = new{D}()
-        this.derivative = derivative
-        this.volume = Float64(volume)
-        this.fulfilled = false
-        return this
-    end
+  function Order(derivative::D, volume::Real=1) where {D<:Derivative}
+    this = new{D}()
+    this.derivative = derivative
+    this.volume = Float64(volume)
+    this.fulfilled = false
+    return this
+  end
 end
 
-order(derivative::Derivative, volume::Real=1) = Order(derivative,volume)
+order(derivative::Derivative, volume::Real=1) = Order(derivative, volume)
 
-Base.show(io::IO,O::Order) = print(io,"Order for $(O.volume) $(name(O.derivative)) on $(O.derivative.underlying.ticker)")
-
+Base.show(io::IO, O::Order) = print(
+  io, "Order for $(O.volume) $(name(O.derivative)) on $(O.derivative.underlying.ticker)"
+)
 
 volume(order::Order) = order.volume
 
@@ -63,7 +63,6 @@ price(O)
 """
 price(order::Order) = price(order.derivative) * volume(order)
 
-
 """    
     fulfill(order::Order,date::DateTime=now())
 
@@ -80,12 +79,11 @@ fulfill(O,100)
 1202.1778063564075
 ```
 """
-function fulfill(order::Order,date::Int=length(order.derivative.underlying))
-    order.fulfilled = true
-    order.fulfillment_date = date
-    return price(order) 
+function fulfill(order::Order, date::Int=length(order.derivative.underlying))
+  order.fulfilled = true
+  order.fulfillment_date = date
+  return price(order)
 end
-
 
 """
     isfulfilled(order::Order)
@@ -104,9 +102,3 @@ false
 ```
 """
 isfulfilled(order::Order) = order.fulfilled
-
-
-
-    
-
-

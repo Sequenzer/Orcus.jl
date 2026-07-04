@@ -1,8 +1,8 @@
 export
-    CostModel,
-    NoCost,
-    FlatCost,
-    transaction_cost
+  CostModel,
+  NoCost,
+  FlatCost,
+  transaction_cost
 
 """
     CostModel
@@ -34,12 +34,12 @@ Flat proportional cost model.
 Both are charged on every fill regardless of trade direction.
 """
 struct FlatCost <: CostModel
-    commission_pct::Float64
-    slippage_bps::Float64
+  commission_pct::Float64
+  slippage_bps::Float64
 end
 
 FlatCost(; commission_pct::Real=0.0, slippage_bps::Real=0.0) =
-    FlatCost(Float64(commission_pct), Float64(slippage_bps))
+  FlatCost(Float64(commission_pct), Float64(slippage_bps))
 
 """
     transaction_cost(model::CostModel, notional::Real) -> (commission, slippage)
@@ -47,10 +47,10 @@ FlatCost(; commission_pct::Real=0.0, slippage_bps::Real=0.0) =
 Return the `(commission, slippage)` cash amounts for a fill of the given gross
 `notional`. Both values are non-negative.
 """
-transaction_cost(::NoCost, notional::Real) = (commission = 0.0, slippage = 0.0)
+transaction_cost(::NoCost, notional::Real) = (commission=0.0, slippage=0.0)
 
 function transaction_cost(cm::FlatCost, notional::Real)
-    base = abs(Float64(notional))
-    return (commission = cm.commission_pct * base,
-            slippage   = cm.slippage_bps / 1e4 * base)
+  base = abs(Float64(notional))
+  return (commission=cm.commission_pct * base,
+    slippage=cm.slippage_bps / 1e4 * base)
 end

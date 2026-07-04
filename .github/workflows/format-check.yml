@@ -26,11 +26,12 @@ jobs:
           Pkg.add(PackageSpec(name="JuliaFormatter"))
           using JuliaFormatter
           format(".", verbose=true)
-      - name: Report formatting differences (advisory, non-blocking)
+      - name: Check formatting
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            echo "::warning::Code is not blue-formatted. Run 'using JuliaFormatter; format(\".\")' locally and commit."
+            echo "::error::Code is not blue-formatted. Run 'using JuliaFormatter; format(\".\")' locally and commit."
             git diff --color=always
+            exit 1
           else
             echo "All files already formatted."
           fi
