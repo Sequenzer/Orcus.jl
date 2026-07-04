@@ -127,4 +127,122 @@ end
 
     @test [(r.bar, r.cash) for r in cashflows_table(B)] == cash_history(B)
 end
+
+@testset verbose=false "turnover_table and weights_table basic" begin
+    Random.seed!(1234)
+    M = Market([asset()])
+    A = first(values(M.data))
+    B = Broker(M, 1_000_000)
+
+    advance_to!(M, 1)
+    place_order!(B, Order(Buy(A), 10))
+    process_orders!(B)
+    push!(B.equity_history, B.cash + total_value(B.portfolio))
+
+    advance_to!(M, 2)
+    push!(B.equity_history, B.cash + total_value(B.portfolio))
+
+    advance_to!(M, 3)
+    push!(B.equity_history, B.cash + total_value(B.portfolio))
+
+    tot = turnover_table(B)
+    @test Tables.istable(tot)
+    @test length(tot) == 3
+    @test tot[1].traded_notional == abs(B.history[1].delta_cash)
+    @test tot[2].traded_notional == 0.0
+    @test tot[2].turnover == 0.0
+    @test tot[1].turnover == tot[1].traded_notional / B.equity_history[1]
+
+    wt = weights_table(B)
+    @test Tables.istable(wt)
+    rows_bar1 = [r for r in wt if r.bar == 1]
+    @test length(rows_bar1) == 1
+    @test rows_bar1[1].ticker == A.ticker
+    @test rows_bar1[1].value ≈ 10.0 * A.data[A.close_idx, 1]
+    @test rows_bar1[1].weight ≈ rows_bar1[1].value / B.equity_history[1]
+
+    # asset() is sparse (data every 5th bar); bar 3 has no fresh Close, so the value should
+    # carry forward the last observed price (bar 1) rather than read a NaN.
+    rows_bar3 = [r for r in wt if r.bar == 3]
+    @test rows_bar3[1].value ≈ 10.0 * A.data[A.close_idx, 1]
+end
+
+@testset verbose=false "turnover_table and weights_table across a forced close" begin
+    Random.seed!(1234)
+    M = Market([asset()])
+    A = first(values(M.data))
+    B = Broker(M, 1_000_000)
+
+    advance_to!(M, 1)
+    place_order!(B, Order(Buy(A), 10))
+    process_orders!(B)
+    push!(B.equity_history, B.cash + total_value(B.portfolio))
+
+    advance_to!(M, 2)
+    request_to_close_all!(B)
+    resolve_portfolio!(B)
+    push!(B.equity_history, B.cash + total_value(B.portfolio))
+
+    advance_to!(M, 3)
+    push!(B.equity_history, B.cash + total_value(B.portfolio))
+
+    @test B.history[2].volume == 0.0    # close-out sentinel
+
+    tot = turnover_table(B)
+    @test tot[2].traded_notional == abs(B.history[2].delta_cash)
+    @test tot[2].traded_notional > 0.0   # counted via delta_cash, not silently 0 via volume
+
+    wt = weights_table(B)
+    @test isempty([r for r in wt if r.bar == 2])
+    @test isempty([r for r in wt if r.bar == 3])
+end
+
+@testset verbose=false "weights_table matches live portfolio at final bar" begin
+    Random.seed!(1234)
+    M = Market([asset()])
+    A = first(values(M.data))
+    B = Broker(M, 1_000_000)
+
+    for i in 1:3
+        advance_to!(M, i)
+        if i == 1
+            place_order!(B, Order(Buy(A), 10))
+            process_orders!(B)
+        end
+        push!(B.equity_history, B.cash + total_value(B.portfolio))
+    end
+
+    wt = weights_table(B)
+    final_bar = length(B.equity_history)
+    row = only(r for r in wt if r.bar == final_bar)
+    @test row.value ≈ total_value(B.portfolio)
+end
+
+@testset verbose=false "turnover_table and weights_table on empty broker" begin
+    M = Market([asset()])
+    B = Broker(M, 1000)
+    @test isempty(turnover_table(B))
+    @test isempty(weights_table(B))
+    @test Tables.istable(turnover_table(B))
+    @test Tables.istable(weights_table(B))
+end
+
+@testset verbose=false "weights_table separates multiple tickers" begin
+    Random.seed!(1234)
+    M = Market([asset(), asset()])
+    tickers = collect(keys(M.data))
+    A1 = M.data[tickers[1]]
+    A2 = M.data[tickers[2]]
+    B = Broker(M, 1_000_000)
+
+    advance_to!(M, 1)
+    place_order!(B, Order(Buy(A1), 10))
+    place_order!(B, Order(Sell(A2), 5))
+    process_orders!(B)
+    push!(B.equity_history, B.cash + total_value(B.portfolio))
+
+    wt = weights_table(B)
+    @test length(wt) == 2
+    @test Set(r.ticker for r in wt) == Set([A1.ticker, A2.ticker])
+end
 end
