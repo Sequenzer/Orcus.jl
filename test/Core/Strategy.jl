@@ -6,7 +6,7 @@
     M=Market([x,y])
     global buy_init(_::Strategy) = 3
     global buy_next(_::Strategy) = 5
-    @generateStrategy BasicStrategy buy_next buy_init
+    @generate_strategy BasicStrategy buy_next buy_init
     s = BasicStrategy(Broker(M,1000))
     @test isa(s,Strategy)
     @test init(s) == 3
@@ -23,11 +23,11 @@ end
         if length(s.broker.portfolio) == 0
             for (_,asset) in s.market.data
                 O = Order(Buy(asset,10))
-                placeOrder!(s.broker,O)
+                place_order!(s.broker,O)
             end
         end
     end
-    @generateStrategy BuyStrategy buy_next2 buy_init2
+    @generate_strategy BuyStrategy buy_next2 buy_init2
     s = BuyStrategy(Broker(M,1000))
     @test isa(s,Strategy)
 end

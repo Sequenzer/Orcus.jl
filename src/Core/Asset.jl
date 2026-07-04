@@ -7,7 +7,7 @@ export Asset,
     height,
     data,
     n_datasets,
-    randOHLC,
+    rand_ohlc,
     calculate_indicator,
     apply_indicator,
     value,
@@ -59,18 +59,18 @@ asset(ticker::String, data::AbstractMatrix{Float64}, data_id::Vector{String}) =
 
 function asset()
     ticker = randstring('A':'Z', 4)
-    ohlc, data_id = randOHLC(100, x->rand()-0.5, 1:5:3653, 10)
+    ohlc, data_id = rand_ohlc(100, x->rand()-0.5, 1:5:3653, 10)
     return Asset(ticker, ohlc, data_id)
 end
 
 function asset(ticker::String)
-    ohlc, data_id = randOHLC(100, x->rand()-0.5, 1:5:3653, 10)
+    ohlc, data_id = rand_ohlc(100, x->rand()-0.5, 1:5:3653, 10)
     return Asset(ticker, ohlc, data_id)
 end
 
 function asset(ticker::String, interval::StepRange{Int,Int}, prop_func::Function,
                base::Real=100, precision::Int=10)
-    ohlc, data_id = randOHLC(base, prop_func, interval, precision)
+    ohlc, data_id = rand_ohlc(base, prop_func, interval, precision)
     return Asset(ticker, ohlc, data_id)
 end
 
@@ -156,11 +156,11 @@ n_datasets(A::Asset)   = height(A)
 Base.size(A::Asset)    = (height(A), A.visible)
 
 """
-    randOHLC(base, f, interval, precision) -> (DataSeries, Vector{String})
+    rand_ohlc(base, f, interval, precision) -> (DataSeries, Vector{String})
 
 Generate synthetic OHLC bars. Non-sampled bars are filled with NaN.
 """
-function randOHLC(base::Number, f::Function, interval::StepRange{Int,Int}, precision::Int)
+function rand_ohlc(base::Number, f::Function, interval::StepRange{Int,Int}, precision::Int)
     full_interval = interval.start:1:interval.stop
     data_id = ["Open", "High", "Low", "Close"]
     ohlc = fill(NaN, length(data_id), length(full_interval))
@@ -168,7 +168,7 @@ function randOHLC(base::Number, f::Function, interval::StepRange{Int,Int}, preci
     lst = base
     for i in full_interval
         rem(i - 1, step(interval)) !== 0 && continue
-        arr       = randomValue(lst, precision, f)
+        arr       = random_value(lst, precision, f)
         sortedarr = sort(arr)
         ohlc[1, i] = first(arr)
         ohlc[2, i] = last(sortedarr)

@@ -31,16 +31,16 @@ function sweep_next(s::Strategy)
         down = a["SMAf", n] <  a["SMAs", n] && a["SMAf", n-1] >= a["SMAs", n-1]
 
         if up
-            requestToCloseAll!(s.broker)
-            placeOrder!(s.broker, Order(Buy(a, 5)))
+            request_to_close_all!(s.broker)
+            place_order!(s.broker, Order(Buy(a, 5)))
         elseif down
-            requestToCloseAll!(s.broker)   # go flat, no short
+            request_to_close_all!(s.broker)   # go flat, no short
         end
     end
 end
 
 # typed param fields → sweepable, and 0 B/bar on the hot path
-@generateStrategy SMASweep sweep_next sweep_init fast::Int=10 slow::Int=20
+@generate_strategy SMASweep sweep_next sweep_init fast::Int=10 slow::Int=20
 
 # ── the sweep ─────────────────────────────────────────────────────────────────
 M = market([GOOG])     # batch_backtest copies this per job; GOOG itself is never mutated

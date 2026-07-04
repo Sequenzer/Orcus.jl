@@ -2,21 +2,21 @@
 export
     Broker,
     broker,
-    placeOrder!,
+    place_order!,
     execute!,
-    processOrder!,
-    processLastOrder!,
-    processOrders!,
-    resolvePortfolio!,
-    processAll!,
-    requestToCloseAll!,
-    requestToClose!,
+    process_order!,
+    process_last_order!,
+    process_orders!,
+    resolve_portfolio!,
+    process_all!,
+    request_to_close_all!,
+    request_to_close!,
     has_position,
     position_direction,
     unrealized_pnl,
     realized_pnl,
     cash_history,
-    toIndex,
+    to_index,
     status
 
 
@@ -51,8 +51,8 @@ mutable struct Broker
     history::Vector{Trade}
     rejected::Vector{Tuple{Order,String,Int}}      # (order, reason, bar)
     equity_history::Vector{Float64}
-    _close_keys::Vector{InstrumentKey}             # reusable scratch for resolvePortfolio!
-    _pending_close::Bool                           # set when a close is requested; lets resolvePortfolio! skip the per-bar scan
+    _close_keys::Vector{InstrumentKey}             # reusable scratch for resolve_portfolio!
+    _pending_close::Bool                           # set when a close is requested; lets resolve_portfolio! skip the per-bar scan
     function Broker(market::Market, cash::Real; cost_model::CostModel=NoCost())
         this = new()
         this.cash           = Float64(cash)
@@ -74,7 +74,7 @@ broker(market::Market, cash::Real; cost_model::CostModel=NoCost()) =
 
 function broker(n_Assets::Int, cash::Real; cost_model::CostModel=NoCost())
     M=market();
-    foreach(x->addAsset!(M,asset()),1:n_Assets)
+    foreach(x->add_asset!(M,asset()),1:n_Assets)
     return Broker(M, cash; cost_model=cost_model)
 end
 
@@ -82,7 +82,7 @@ Base.show(io::IO,B::Broker) = print(io,"Broker with $(round(B.cash;digits=2)) fu
 
 """
 
-    placeOrder!(B::Broker,O::Order)
+    place_order!(B::Broker,O::Order)
 
 Place an Order in the Broker's Orderbook
 
@@ -91,11 +91,11 @@ Random.seed!(1234);
 B = broker(3,1000);
 A = B.market.data[collect(keys(B.market.data))[2]]
 O = Order(Buy(A,10))
-placeOrder!(B,O)
+place_order!(B,O)
 B
 ```
 """
-function placeOrder!(B::Broker,O::Order)
+function place_order!(B::Broker,O::Order)
      #ToDo Check if requirements for placement are met
     push!(B.orders,O)
     return;
@@ -109,14 +109,7 @@ The single fill path used by every order-processing function. Applies the broker
 `cost_model`, checks funds, books the cash impact, records the `Trade`, and folds the
 fill into the netted `Position` for `instrument_key(O.derivative)`.
 
-- gross `notional = price(O)` (signed; negative for `Sell`/short legs);
-- `(commission, slippage) = transaction_cost(B.cost_model, notional)`; fees always worsen
-  the fill, so the cash that leaves the account is `Δ = notional + commission + slippage`;
-- if `B.cash - Δ < 0` the order is **rejected** (recorded in `B.rejected`) unless
-  `strict=true`, in which case it errors — preserving the old `processOrder!` contract;
-- the position is created on first fill and **deleted** from the portfolio when it nets to
-  zero. The per-unit fill price handed to `apply_trade!` is the raw `price(O.derivative)`;
-  total fees are passed separately and subtracted from the position's `realized_pnl`.
+Insufficient funds are recorded in `B.rejected`, unless `strict=true`, in which case they error.
 """
 function execute!(B::Broker, O::Order{D}, date::Int=length(B); strict::Bool=false) where {D<:Derivative}
     if isfulfilled(O)
@@ -151,7 +144,7 @@ end
 
 
 """
-    processOrder!(B::Broker, O::Order, check_books::Bool=true)
+    process_order!(B::Broker, O::Order, check_books::Bool=true)
 
 Strictly process a single order: remove it from the orderbook (when `check_books`) and fill
 it via [`execute!`](@ref) with `strict=true`, so insufficient funds raise instead of being
@@ -162,12 +155,12 @@ Random.seed!(1234);
 B = broker(3,1000);
 A = B.market.data[collect(keys(B.market.data))[2]]
 O = Order(Buy(A,10))
-placeOrder!(B,O)
-processOrder!(B,O)
+place_order!(B,O)
+process_order!(B,O)
 length(B.history)
 ```
 """
-function processOrder!(B::Broker, O::Order, check_books::Bool=true)
+function process_order!(B::Broker, O::Order, check_books::Bool=true)
     today = length(B)
     if check_books
         i = findfirst(==(O), B.orders)
@@ -182,11 +175,11 @@ function processOrder!(B::Broker, O::Order, check_books::Bool=true)
 end
 
 """
-    processLastOrder!(B::Broker)
+    process_last_order!(B::Broker)
 
 Pop and fill the most recently placed order via [`execute!`](@ref) (`strict=true`).
 """
-function processLastOrder!(B::Broker)
+function process_last_order!(B::Broker)
     isempty(B.orders) && error("No Orders to process")
     O = pop!(B.orders)
     execute!(B, O, length(B); strict=true)
@@ -195,7 +188,7 @@ end
 
 """
 
-    resolvePortfolio!(B::Broker)
+    resolve_portfolio!(B::Broker)
 
 Close every position whose `requestToClose` flag is set, liquidating at the current market
 value. Each close realizes P&L, applies transaction costs, books the cash, records a
@@ -206,10 +199,10 @@ Random.seed!(1234);
 B = broker(3,1000);
 A = B.market.data[collect(keys(B.market.data))[2]]
 O = Order(Sell(A,10))
-placeOrder!(B,O)
-processOrder!(B,O)
-requestToCloseAll!(B)
-resolvePortfolio!(B)
+place_order!(B,O)
+process_order!(B,O)
+request_to_close_all!(B)
+resolve_portfolio!(B)
 length(B.history)
 
 # output
@@ -218,7 +211,7 @@ length(B.history)
 ```
 
 """
-function resolvePortfolio!(B::Broker)
+function resolve_portfolio!(B::Broker)
     # Fast path: nothing has been flagged since the last resolve → skip the per-bar group scan
     # (and its dynamic dispatch) entirely. Every flag setter sets `_pending_close`.
     B._pending_close || return B
@@ -239,7 +232,7 @@ end
     close_position!(B::Broker, key, P::Position, date::Int)
 
 Liquidate the whole of position `P` at its current market value. Internal close-out helper
-used by [`resolvePortfolio!`](@ref).
+used by [`resolve_portfolio!`](@ref).
 """
 function close_position!(B::Broker, key::InstrumentKey, P::Position, date::Int)
     notional = value(P)                                   # signed market value liquidated
@@ -264,7 +257,7 @@ end
 
 
 """
-    processOrders!(B::Broker)
+    process_orders!(B::Broker)
 
 Process the whole orderbook in **FIFO** order via [`execute!`](@ref). Unfillable orders are
 recorded in `B.rejected` rather than silently discarded. The queue is empty on return.
@@ -274,8 +267,8 @@ Random.seed!(1234);
 B = broker(3,1000);
 A = B.market.data[collect(keys(B.market.data))[2]]
 O = Order(Buy(A,10))
-placeOrder!(B,O)
-processOrders!(B)
+place_order!(B,O)
+process_orders!(B)
 length(B.history)
 
 # output
@@ -284,7 +277,7 @@ length(B.history)
 
 ```
 """
-function processOrders!(B::Broker)
+function process_orders!(B::Broker)
     today = length(B)
     while !isempty(B.orders)
         O = popfirst!(B.orders)                           # FIFO
@@ -293,10 +286,10 @@ function processOrders!(B::Broker)
     return B
 end
 
-function processAll!(B::Broker)
+function process_all!(B::Broker)
     @inline
-    isempty(B.orders) || processOrders!(B)        # skip the call entirely on no-order bars
-    B._pending_close  && resolvePortfolio!(B)      # skip the call entirely on no-close bars
+    isempty(B.orders) || process_orders!(B)        # skip the call entirely on no-order bars
+    B._pending_close  && resolve_portfolio!(B)      # skip the call entirely on no-close bars
     equity = B.cash + total_value(B.portfolio)     # type-grouped barrier: no per-position boxing
     push!(B.equity_history, equity)
     return B
@@ -343,24 +336,24 @@ function status(B::Broker,digits::Int=2)
 end
 
 """
-    requestToCloseAll!(B::Broker)
+    request_to_close_all!(B::Broker)
 
-Flag every open position to be closed on the next `resolvePortfolio!`/`processAll!`.
+Flag every open position to be closed on the next `resolve_portfolio!`/`process_all!`.
 """
-function requestToCloseAll!(B::Broker)
+function request_to_close_all!(B::Broker)
     set_all_close!(B.portfolio)   # barrier per type-group; no per-position boxing
     B._pending_close = true
     return
 end
 
 """
-    requestToClose!(B::Broker, ticker::String)
+    request_to_close!(B::Broker, ticker::String)
 
-Mark all open positions for `ticker` to be closed on the next `processAll!` call.
+Mark all open positions for `ticker` to be closed on the next `process_all!` call.
 """
-function requestToClose!(B::Broker, ticker::String)
+function request_to_close!(B::Broker, ticker::String)
     for P in values(B.portfolio)
-        P.derivative.underlying.ticker == ticker && requestToClose(P)
+        P.derivative.underlying.ticker == ticker && request_to_close(P)
     end
     B._pending_close = true
     return
@@ -395,7 +388,7 @@ end
 Total unrealized P&L (mark minus cost basis) across all currently open positions.
 """
 unrealized_pnl(B::Broker) =
-    sum(absReturn(P) for P in values(B.portfolio); init=0.0)
+    sum(abs_return(P) for P in values(B.portfolio); init=0.0)
 
 """
     realized_pnl(B::Broker) -> Float64
@@ -424,7 +417,7 @@ Return the cash history of the Broker
 Random.seed!(1234);
 M=market([asset(),asset()]);
 T = Backtest(M,CrossOverStrategy,1000)
-runTest(T)
+run_test(T)
 cash_history(T.broker)
 ```
 """
@@ -441,7 +434,7 @@ function cash_history(B::Broker)
 end
 
 """
-    toIndex(B::Broker)::Asset
+    to_index(B::Broker)::Asset
 
 Convert a Broker to an Asset
 
@@ -452,12 +445,12 @@ y=asset();
 M=market([x,y]);
 B = broker(M,1000);
 BT = Backtest(M,CrossOverStrategy,1000)
-runTest(BT)
-A = toIndex(BT.broker)
+run_test(BT)
+A = to_index(BT.broker)
 ```
 
 """
-function toIndex(B::Broker)::Asset
+function to_index(B::Broker)::Asset
     isempty(B.equity_history) && error("No equity history — run a backtest first")
     data = reshape(B.equity_history, 1, length(B.equity_history))
     Asset("Broker", data, ["Equity"])

@@ -8,8 +8,8 @@ export IndicatorGenerator,
     IndicatorGenerator(f::Function,window::Int)
 
 # Fields
-- f: The function that will calculate the Indicator,
-- window: The window size of the data that will be used to calculate the Indicator.
+- f: computation function
+- window: lookback size
 
 # Example
 ```jldoctest

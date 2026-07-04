@@ -13,11 +13,11 @@ cursor and any indicators attached in `init` are private to the job) and builds 
 threaded result is identical to the sequential one.
 
 `grid` is a vector of `NamedTuple`s forwarded as keyword arguments to the strategy constructor.
-Declare the swept parameters as typed fields with [`@generateStrategy`](@ref) (or a custom
-`@strategyMethods` struct whose constructor accepts the same keywords):
+Declare the swept parameters as typed fields with [`@generate_strategy`](@ref) (or a custom
+`@strategy_methods` struct whose constructor accepts the same keywords):
 
 ```julia
-@generateStrategy SMAcross cross_next cross_init fast::Int=10 slow::Int=20
+@generate_strategy SMAcross cross_next cross_init fast::Int=10 slow::Int=20
 res = batch_backtest(market([copy(AAPL)]), SMAcross, 10_000,
                      [(fast=5, slow=20), (fast=10, slow=30)])
 ```
@@ -34,7 +34,7 @@ function batch_backtest(market::Market, strategy::Type, cash::Real,
                         progress::Bool=false)
     return batch_backtest(length(grid); threaded=threaded, progress=progress) do i
         M = copy(market)                      # private market → private cursor + indicators
-        runTest(Backtest(M, strategy, cash; params=grid[i], cost_model=cost_model))
+        run_test(Backtest(M, strategy, cash; params=grid[i], cost_model=cost_model))
     end
 end
 
@@ -48,7 +48,7 @@ itself rather than just strategy parameters:
 
 ```julia
 res = batch_backtest(length(universes)) do i
-    runTest(Backtest(market([copy(a) for a in universes[i]]), MyStrat, 10_000))
+    run_test(Backtest(market([copy(a) for a in universes[i]]), MyStrat, 10_000))
 end
 ```
 """

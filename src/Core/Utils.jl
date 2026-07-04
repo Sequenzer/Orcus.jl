@@ -1,5 +1,4 @@
-#Exports
-export randomValue,
+export random_value,
     DataSeries,
     DataPoint,
     data_series,
@@ -12,7 +11,7 @@ export randomValue,
 IncompleteVector = AbstractVector{<:Union{<:Real, Missing}}
 
 
-function randomValue(x::Real,n::Int,f::Function)
+function random_value(x::Real,n::Int,f::Function)
     arr::Vector{Real}=[x]
     while (length(arr)<n)
         old = last(arr)

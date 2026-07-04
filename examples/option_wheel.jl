@@ -63,7 +63,7 @@ mutable struct OptionWheel <: Strategy
     end
 end
 
-@strategyMethods OptionWheel wheel_next wheel_init
+@strategy_methods OptionWheel wheel_next wheel_init
 
 function wheel_init(s::OptionWheel) end
 
@@ -93,7 +93,7 @@ function wheel_next(s::OptionWheel)
             prem             = bsm_put(S, K, T_years, s.r, rv)
             s.put_strike[nm] = K
             s.expiry_bar[nm] = n + s.cycle
-            placeOrder!(s.broker, Order(ShortPut(a, K, prem), qty))
+            place_order!(s.broker, Order(ShortPut(a, K, prem), qty))
             continue
         end
 
@@ -101,7 +101,7 @@ function wheel_next(s::OptionWheel)
         n < s.expiry_bar[nm] && continue
 
         # ── Expiry: close all open positions for this ticker ───────────────
-        requestToClose!(s.broker, nm)
+        request_to_close!(s.broker, nm)
         s.expiry_bar[nm] = n + s.cycle
         qty = s.qty[nm]
 
@@ -113,14 +113,14 @@ function wheel_next(s::OptionWheel)
                 K_call            = 1.05 * S
                 s.call_strike[nm] = K_call
                 cc_prem           = bsm_call(S, K_call, T_years, s.r, rv)
-                placeOrder!(s.broker, Order(Buy(a), qty))
-                placeOrder!(s.broker, Order(ShortCall(a, K_call, cc_prem), qty))
+                place_order!(s.broker, Order(Buy(a), qty))
+                place_order!(s.broker, Order(ShortCall(a, K_call, cc_prem), qty))
             else
                 # Expired OTM: sell new put
                 K_new            = 0.95 * S
                 s.put_strike[nm] = K_new
                 prem             = bsm_put(S, K_new, T_years, s.r, rv)
-                placeOrder!(s.broker, Order(ShortPut(a, K_new, prem), qty))
+                place_order!(s.broker, Order(ShortPut(a, K_new, prem), qty))
             end
 
         else  # :covered_call
@@ -131,14 +131,14 @@ function wheel_next(s::OptionWheel)
                 K_new            = 0.95 * S
                 s.put_strike[nm] = K_new
                 prem             = bsm_put(S, K_new, T_years, s.r, rv)
-                placeOrder!(s.broker, Order(ShortPut(a, K_new, prem), qty))
+                place_order!(s.broker, Order(ShortPut(a, K_new, prem), qty))
             else
                 # Not called: keep stock, sell new covered call
                 K_new             = 1.05 * S
                 s.call_strike[nm] = K_new
                 cc_prem           = bsm_call(S, K_new, T_years, s.r, rv)
-                placeOrder!(s.broker, Order(Buy(a), qty))
-                placeOrder!(s.broker, Order(ShortCall(a, K_new, cc_prem), qty))
+                place_order!(s.broker, Order(Buy(a), qty))
+                place_order!(s.broker, Order(ShortCall(a, K_new, cc_prem), qty))
             end
         end
     end
@@ -146,7 +146,7 @@ end
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 bt = Backtest(M, OptionWheel, 20_000)
-runTest(bt)
+run_test(bt)
 
 # ── Results ───────────────────────────────────────────────────────────────────
 bah = bah_equity(bt.market, 20_000)

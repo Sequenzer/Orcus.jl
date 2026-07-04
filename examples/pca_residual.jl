@@ -32,7 +32,7 @@ mutable struct PCAReversal <: Strategy
     end
 end
 
-@strategyMethods PCAReversal pca_reversal_next pca_reversal_init
+@strategy_methods PCAReversal pca_reversal_next pca_reversal_init
 
 function pca_reversal_init(s::PCAReversal) end
 
@@ -70,14 +70,14 @@ function pca_reversal_next(s::PCAReversal)
     qty_best  = max(1, floor(Int, TARGET_NOTIONAL / value(a_best)))
     qty_worst = max(1, floor(Int, TARGET_NOTIONAL / value(a_worst)))
 
-    requestToCloseAll!(s.broker)
-    placeOrder!(s.broker, Order(Buy(a_best),   qty_best))
-    placeOrder!(s.broker, Order(Sell(a_worst), qty_worst))
+    request_to_close_all!(s.broker)
+    place_order!(s.broker, Order(Buy(a_best),   qty_best))
+    place_order!(s.broker, Order(Sell(a_worst), qty_worst))
 end
 
 # ── Run backtest ──────────────────────────────────────────────────────────────
 bt = Backtest(M, PCAReversal, 10_000)
-runTest(bt)
+run_test(bt)
 
 println(bt)
 backtest_summary(bt)

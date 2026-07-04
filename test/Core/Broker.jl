@@ -13,15 +13,15 @@
   isa(B,Broker)
   A = B.market.data[collect(keys(B.market.data))[2]]
   O = Order(Buy(A,10))
-  placeOrder!(B,O)
+  place_order!(B,O)
   @test length(B.orders) == 1
-  processOrder!(B,O)
+  process_order!(B,O)
   @test length(B.history) == 1
   @test length(B.portfolio) == 1
 
   P = first(values(B.portfolio))
-  requestToCloseAll!(B)
-  resolvePortfolio!(B)
+  request_to_close_all!(B)
+  resolve_portfolio!(B)
   @test length(B.history) == 2
   @test length(B.portfolio) == 0
 end
@@ -34,8 +34,8 @@ end
 
   # FIFO: orders fill front-to-back
   o1 = Order(Buy(A), 1); o2 = Order(Buy(A), 2); o3 = Order(Buy(A), 3)
-  placeOrder!(B, o1); placeOrder!(B, o2); placeOrder!(B, o3)
-  processOrders!(B)
+  place_order!(B, o1); place_order!(B, o2); place_order!(B, o3)
+  process_orders!(B)
   @test isempty(B.orders)
   @test [t.volume for t in B.history] == [1.0, 2.0, 3.0]   # deterministic FIFO order
   @test length(B.portfolio) == 1                            # all three netted into one
@@ -43,8 +43,8 @@ end
   # rejection: an order that can't be funded is recorded, not silently dropped
   Bp = Broker(M, 1.0)
   big = Order(Buy(A), 1000)
-  placeOrder!(Bp, big)
-  processOrders!(Bp)
+  place_order!(Bp, big)
+  process_orders!(Bp)
   @test isempty(Bp.history)
   @test length(Bp.rejected) == 1
   @test Bp.rejected[1][1] === big
@@ -59,9 +59,9 @@ end
 
   start = B.cash
   O = Order(Buy(A, 10))
-  placeOrder!(B, O); processOrders!(B)
+  place_order!(B, O); process_orders!(B)
   P = first(values(B.portfolio))
-  requestToCloseAll!(B); resolvePortfolio!(B)
+  request_to_close_all!(B); resolve_portfolio!(B)
 
   # round trip at the same bar: final cash == start minus total fees, and < start
   @test B.cash < start

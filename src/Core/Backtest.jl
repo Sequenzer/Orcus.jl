@@ -1,7 +1,7 @@
 
 export Backtest,
-    runTest,
-    processDay!
+    run_test,
+    process_day!
 
 """
 
@@ -15,7 +15,7 @@ x=asset();
 y=asset();
 M=market([x,y]);
 T = Backtest(M,CrossOverStrategy,1000)
-runTest(T)
+run_test(T)
 
 # output
 
@@ -45,12 +45,12 @@ backtest(market::Market, strategy::Type, cash::Real=1000; params=(;), cost_model
 
 
 
-@inline function processDay!(BT::Backtest)
-    processAll!(BT.broker)
+@inline function process_day!(BT::Backtest)
+    process_all!(BT.broker)
     next(BT.strategy)
     return
 end
-function runTest(BT::Backtest)
+function run_test(BT::Backtest)
     if BT.completed
         error("Backtest already completed")
     end
@@ -66,7 +66,7 @@ function runTest(BT::Backtest)
 
     for i in 1:full
         advance_to!(M, i)        # cursor advance — no copy, no per-bar allocation
-        processDay!(BT)
+        process_day!(BT)
     end
     BT.completed = true
     return BT

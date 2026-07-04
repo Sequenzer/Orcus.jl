@@ -12,7 +12,7 @@ using Base: has_fast_linear_indexing
 
   M = Market([AAPL, GOOG])
   T = Backtest(M,CrossOverStrategy,1000)
-  runTest(T)
+  run_test(T)
   # equity-curve recipe produces data without needing a renderer
   @test !isempty(RecipesBase.apply_recipe(Dict{Symbol,Any}(), T.broker))
 

@@ -55,8 +55,8 @@ bench("full history ($n bars)") do
     returns_matrix(M)
 end
 
-# ── 5. full runTest — no-op strategy ──────────────────────────────────────────
-println("\n=== full runTest (no-op strategy) ===")
+# ── 5. full run_test — no-op strategy ──────────────────────────────────────────
+println("\n=== full run_test (no-op strategy) ===")
 
 function noop_init(s) end
 function noop_next(s) end
@@ -65,20 +65,20 @@ mutable struct NoopStrat <: Strategy
     market::Market
     NoopStrat(b::Broker) = new(b, b.market)
 end
-@strategyMethods NoopStrat noop_next noop_init
+@strategy_methods NoopStrat noop_next noop_init
 
-bench("runTest $n bars × $(length(M.data)) assets") do
+bench("run_test $n bars × $(length(M.data)) assets") do
     bt = Backtest(copy(M), NoopStrat, 100_000)
-    runTest(bt)
+    run_test(bt)
 end
 
-# ── 6. processAll! in isolation ───────────────────────────────────────────────
-println("\n=== processAll! (no open positions) ===")
+# ── 6. process_all! in isolation ───────────────────────────────────────────────
+println("\n=== process_all! (no open positions) ===")
 bt2 = Backtest(copy(M), NoopStrat, 100_000)
 B   = bt2.broker
-bench("processAll! × 10 000 calls") do
+bench("process_all! × 10 000 calls") do
     for _ in 1:10_000
-        processAll!(B)
+        process_all!(B)
     end
 end
 

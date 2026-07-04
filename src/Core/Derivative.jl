@@ -1,20 +1,20 @@
 
 export 
     Derivative,
-    @generateDerivative,
+    @generate_derivative,
     Buy,
     Sell,
     LongCall,
     LongPut,
     ShortCall,
     ShortPut,
-    printProps,
-    uValue,
+    print_props,
+    u_value,
     value,
     name,
-    absReturn,
-    pctReturn,
-    logReturn,
+    abs_return,
+    pct_return,
+    log_return,
     payoff,
     instrument_key,
     InstrumentKey
@@ -31,7 +31,7 @@ abstract type Derivative end
 
 Base.show(io::IO,D::Derivative) = print(io,"Derivative of Type '$(name(D))' on $(D.underlying.ticker)")
 
-@inline function uValue(D::Derivative)
+@inline function u_value(D::Derivative)
     return value(D.underlying)
 end
 
@@ -44,15 +44,15 @@ concrete type (no boxed `Function` field), so `value(D)` is type-stable and inli
 function payoff end
 
 @inline function value(D::Derivative)
-    return payoff(D, uValue(D))
+    return payoff(D, u_value(D))
 end
-function absReturn(D::Derivative)
-    return payoff(D, uValue(D) - D.price)
+function abs_return(D::Derivative)
+    return payoff(D, u_value(D) - D.price)
 end
-function pctReturn(D::Derivative) ##Check that this is correct
-    return absReturn(D)/D.price
+function pct_return(D::Derivative) ##Check that this is correct
+    return abs_return(D)/D.price
 end
-function logReturn(D::Derivative)
+function log_return(D::Derivative)
     value(D)<=0 ? -Inf : log(value(D)/D.price);
 end
 name(D::Derivative) = String(Symbol(typeof(D)))
@@ -81,7 +81,7 @@ instrument_key(D::Derivative) = InstrumentKey(
 )
 
 """
-    printProps(D::Derivative)
+    print_props(D::Derivative)
 
 Print all the current properties of the input derivative. 
 
@@ -91,7 +91,7 @@ Print all the current properties of the input derivative.
 Random.seed!(456);
 A = asset();
 B = Buy(A,10);
-printProps(B)
+print_props(B)
 # output
 
 ========================================
@@ -108,7 +108,7 @@ Log return: -0.09515815632970726
 ```
 
 """
-function printProps(D::Derivative)
+function print_props(D::Derivative)
     if hasproperty(D,:strike) 
         str = D.strike
     else
@@ -117,19 +117,19 @@ function printProps(D::Derivative)
     otp ="="^40*"\n"*"""
     Assets: $(D.underlying.ticker)
     Derivative type: $(D)
-    Underlying value: $(uValue(D))
+    Underlying value: $(u_value(D))
     Derivative value: $(value(D))
     Price paid: $(D.price)
     Strike price: $(str)
-    Absolute return: $(absReturn(D))
-    Percentage return: $(pctReturn(D))
-    Log return: $(logReturn(D))
+    Absolute return: $(abs_return(D))
+    Percentage return: $(pct_return(D))
+    Log return: $(log_return(D))
     """*"="^40
     print(otp)
 end
 
 """
-    @generateDerivative(Name::Symbol, structure::Expr, price_func::Expr)
+    @generate_derivative(Name::Symbol, structure::Expr, price_func::Expr)
 
 Macro to generate a new derivative type.
 
@@ -137,7 +137,7 @@ Macro to generate a new derivative type.
 # Examples
 
 ```jldoctest
-@generateDerivative NewBuy x->x (val,premium)->val+premium
+@generate_derivative NewBuy x->x (val,premium)->val+premium
 
 x = asset()
 name(NewBuy(x,10))
@@ -147,7 +147,7 @@ name(NewBuy(x,10))
 "NewBuy"
 ```
 """
-macro generateDerivative(Name::Symbol, structure::Expr, price_func::Expr)
+macro generate_derivative(Name::Symbol, structure::Expr, price_func::Expr)
     isdefined(Main,Name) && error("Symbol \"$(Name)\" is already defined")
 
     strct = quote

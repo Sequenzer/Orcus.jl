@@ -52,7 +52,7 @@ mutable struct MomentumVol <: Strategy
     end
 end
 
-@strategyMethods MomentumVol mom_vol_next mom_vol_init
+@strategy_methods MomentumVol mom_vol_next mom_vol_init
 
 function mom_vol_init(s::MomentumVol) end
 
@@ -63,7 +63,7 @@ function mom_vol_next(s::MomentumVol)
     n - s.last_rebal < s.rebal_every && return
     s.last_rebal = n
 
-    requestToCloseAll!(s.broker)
+    request_to_close_all!(s.broker)
 
     scores   = Float64[]
     eligible = String[]
@@ -111,13 +111,13 @@ function mom_vol_next(s::MomentumVol)
 
     for nm in picked
         a = s.market.data[nm]
-        placeOrder!(s.broker, Order(Buy(a), qtys[nm]))
+        place_order!(s.broker, Order(Buy(a), qtys[nm]))
     end
 end
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 bt = Backtest(M, MomentumVol, 50_000)
-runTest(bt)
+run_test(bt)
 
 # ── Results ───────────────────────────────────────────────────────────────────
 bah = bah_equity(bt.market, 50_000)

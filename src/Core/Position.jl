@@ -1,14 +1,12 @@
-#Position
-
 export
     Position,
     volume,
     value,
-    uValue,
+    u_value,
     apply_trade!,
     is_closed,
     realized_pnl,
-    requestToClose
+    request_to_close
 
 """
     Position
@@ -60,11 +58,11 @@ Base.show(io::IO, P::Position) = is_closed(P) ?
 
 volume(P::Position)    = P.net_qty
 @inline value(P::Position) = P.net_qty * value(P.derivative)
-uValue(P::Position)    = P.net_qty * uValue(P.derivative)
+u_value(P::Position)    = P.net_qty * u_value(P.derivative)
 price(P::Position)     = P.net_qty * P.avg_cost                 # cost basis
-absReturn(P::Position) = value(P) - price(P)                    # unrealized
-pctReturn(P::Position) = price(P) == 0 ? 0.0 : absReturn(P) / abs(price(P))
-logReturn(P::Position) = value(P) <= 0 ? -Inf : log(value(P) / price(P))
+abs_return(P::Position) = value(P) - price(P)                    # unrealized
+pct_return(P::Position) = price(P) == 0 ? 0.0 : abs_return(P) / abs(price(P))
+log_return(P::Position) = value(P) <= 0 ? -Inf : log(value(P) / price(P))
 realized_pnl(P::Position) = P.realized_pnl
 
 is_closed(P::Position) = P.net_qty == 0.0
@@ -105,13 +103,13 @@ function apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0)
 end
 
 """
-    requestToClose(P::Position)
+    request_to_close(P::Position)
 
 Set the position's close flag. To have the broker actually close it, request the close
-through the broker API (`requestToCloseAll!`/`requestToClose!`), which also arms the broker's
-per-bar resolve; `resolvePortfolio!` skips its scan unless a broker-level close was requested.
+through the broker API (`request_to_close_all!`/`request_to_close!`), which also arms the broker's
+per-bar resolve; `resolve_portfolio!` skips its scan unless a broker-level close was requested.
 """
-function requestToClose(P::Position)
+function request_to_close(P::Position)
     P.requestToClose = true
     return P
 end

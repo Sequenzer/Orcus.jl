@@ -10,13 +10,13 @@ end
 function bah_next(s::Strategy)
     length(s.market) == 1 || return          # only act on day 1
     aapl = s.market["AAPL"]
-    placeOrder!(s.broker, Order(Buy(aapl, 10)))
+    place_order!(s.broker, Order(Buy(aapl, 10)))
 end
 
-@generateStrategy BuyAndHold bah_next bah_init
+@generate_strategy BuyAndHold bah_next bah_init
 
 bt = Backtest(M, BuyAndHold, 10_000)
-runTest(bt)
+run_test(bt)
 
 println(bt)
 status(bt.broker)

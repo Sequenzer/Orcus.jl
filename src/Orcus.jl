@@ -6,11 +6,13 @@ using Random
 using Statistics
 using LinearAlgebra
 using Printf
+using Tables
 
-export 
+export
     Dates,
-    Random, 
-    Statistics
+    Random,
+    Statistics,
+    Tables
 
 include("Core/Utils.jl")
 include("Core/Indicator.jl")
@@ -25,6 +27,7 @@ include("Core/Portfolio.jl")
 include("Core/Broker.jl")
 include("Core/Strategy.jl")
 include("Core/Backtest.jl")
+include("Core/Tables.jl")
 include("Core/Batch.jl")
 
 include("Lib/Strategies.jl")

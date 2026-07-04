@@ -1,6 +1,4 @@
-#Trade
-
-export 
+export
     Trade
 
 

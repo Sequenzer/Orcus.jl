@@ -3,6 +3,7 @@ using Orcus
 
 using Dates
 using RecipesBase  # recipes are exercised renderer-free via apply_recipe
+using Tables
 
 
 
@@ -19,6 +20,7 @@ using RecipesBase  # recipes are exercised renderer-free via apply_recipe
     include("Core/Broker.jl")
     include("Core/Netting.jl")
     include("Core/Batch.jl")
+    include("Core/Tables.jl")
     #include("Strategy.jl")
 end
 

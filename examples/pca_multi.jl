@@ -38,7 +38,7 @@ mutable struct PCAMulti <: Strategy
     end
 end
 
-@strategyMethods PCAMulti pca_multi_next pca_multi_init
+@strategy_methods PCAMulti pca_multi_next pca_multi_init
 
 function pca_multi_init(s::PCAMulti) end
 
@@ -67,7 +67,7 @@ function pca_multi_next(s::PCAMulti)
     longs  = ranked[1:N_LONG]
     shorts = ranked[end-N_SHORT+1:end]
 
-    requestToCloseAll!(s.broker)
+    request_to_close_all!(s.broker)
 
     # Dollar-approximate sizing: allocate 1/6 of equity per leg
     equity = s.broker.cash + sum(value(p) for p in values(s.broker.portfolio); init=0.0)
@@ -78,20 +78,20 @@ function pca_multi_next(s::PCAMulti)
         px = value(a)
         px <= 0 && continue
         qty = max(1, floor(Int, budget / px))
-        placeOrder!(s.broker, Order(Buy(a), qty))
+        place_order!(s.broker, Order(Buy(a), qty))
     end
     for i in shorts
         a = s.market.data[s.nms[i]]
         px = value(a)
         px <= 0 && continue
         qty = max(1, floor(Int, budget / px))
-        placeOrder!(s.broker, Order(Sell(a), qty))
+        place_order!(s.broker, Order(Sell(a), qty))
     end
 end
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 bt = Backtest(M, PCAMulti, 100_000)
-runTest(bt)
+run_test(bt)
 
 # ── Results ───────────────────────────────────────────────────────────────────
 backtest_summary(bt)

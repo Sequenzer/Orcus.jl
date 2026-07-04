@@ -8,9 +8,9 @@
         #only buy at the start every asset
         length(s.broker.portfolio) > 0 && return
         O = Order(Buy(s.market["TSTS"],10))
-        placeOrder!(s.broker,O) 
+        place_order!(s.broker,O) 
     end   
-    @generateStrategy SBuyStrategy tst_next tst_init
+    @generate_strategy SBuyStrategy tst_next tst_init
 
 
 
@@ -22,7 +22,7 @@
         M = Market([A])
 
         T = Backtest(M, SBuyStrategy, 1000)
-        runTest(T)
+        run_test(T)
 
         P = first(values(T.broker.portfolio))
 

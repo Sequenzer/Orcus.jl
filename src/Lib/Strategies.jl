@@ -12,7 +12,7 @@ export crossover_init,
     
     CrossOverStrategy(broker::Broker)
 
-A temporary strategy for testing purposes.
+An SMA10/SMA20 crossover strategy: buy on an upward cross, sell on a downward cross.
 
 ## Example
 ```jldoctest
@@ -45,13 +45,13 @@ function crossover_next(s::Strategy)
         ismissing(sma20[end-1]) && continue
 
         if sma10[end] > sma20[end] && sma10[end-1] <=sma20[end-1]
-            requestToCloseAll!(s.broker)
+            request_to_close_all!(s.broker)
             O = Order(Buy(asset,10))
-            placeOrder!(s.broker,O)
+            place_order!(s.broker,O)
         elseif sma10[end] < sma20[end] && sma10[end-1] >= sma20[end-1]
-            requestToCloseAll!(s.broker)
+            request_to_close_all!(s.broker)
             O = Order(Sell(asset,10))
-            placeOrder!(s.broker,O)
+            place_order!(s.broker,O)
         end
     end
 end
@@ -67,7 +67,7 @@ end
 
 
 
-@generateStrategy CrossOverStrategy crossover_next crossover_init
+@generate_strategy CrossOverStrategy crossover_next crossover_init
 
 
 

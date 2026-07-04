@@ -24,18 +24,18 @@ function cross_next(s::Strategy)
         crossed_down = a["SMA10", n] <  a["SMA20", n] && a["SMA10", n-1] >= a["SMA20", n-1]
 
         if crossed_up
-            requestToCloseAll!(s.broker)
-            placeOrder!(s.broker, Order(Buy(a, 5)))
+            request_to_close_all!(s.broker)
+            place_order!(s.broker, Order(Buy(a, 5)))
         elseif crossed_down
-            requestToCloseAll!(s.broker)   # go flat, no short
+            request_to_close_all!(s.broker)   # go flat, no short
         end
     end
 end
 
-@generateStrategy SMAcrossover cross_next cross_init
+@generate_strategy SMAcrossover cross_next cross_init
 
 bt = Backtest(M, SMAcrossover, 10_000)
-runTest(bt)
+run_test(bt)
 
 println(bt)
 status(bt.broker)

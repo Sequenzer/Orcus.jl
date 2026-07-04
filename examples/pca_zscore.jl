@@ -26,7 +26,7 @@ end
 #   - No rolling-buffer normalization issues.
 #
 # Uses Orcus functions: asset_names, returns_matrix, position_direction,
-#   requestToCloseAll!, placeOrder!, cross_section_rank.
+#   request_to_close_all!, place_order!, cross_section_rank.
 
 mutable struct PCAStatArb <: Strategy
     broker::Broker
@@ -50,7 +50,7 @@ mutable struct PCAStatArb <: Strategy
     end
 end
 
-@strategyMethods PCAStatArb pca_statarb_next pca_statarb_init
+@strategy_methods PCAStatArb pca_statarb_next pca_statarb_init
 
 function pca_statarb_init(s::PCAStatArb) end
 
@@ -71,7 +71,7 @@ function pca_statarb_next(s::PCAStatArb)
     s.last_rebalance = n
 
     # Close the current basket
-    requestToCloseAll!(s.broker)
+    request_to_close_all!(s.broker)
 
     # Cumulative idiosyncratic return over the holding window
     lo  = max(1, n - s.hold + 1)
@@ -89,16 +89,16 @@ function pca_statarb_next(s::PCAStatArb)
         a   = s.market.data[nm]
         qty = max(1, floor(Int, s.target_notional / value(a)))
         if ranks[i] > length(s.nms) - s.n_legs
-            placeOrder!(s.broker, Order(Buy(a), qty))
+            place_order!(s.broker, Order(Buy(a), qty))
         elseif ranks[i] <= s.n_legs
-            placeOrder!(s.broker, Order(Sell(a), qty))
+            place_order!(s.broker, Order(Sell(a), qty))
         end
     end
 end
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 bt = Backtest(M, PCAStatArb, 50_000)
-runTest(bt)
+run_test(bt)
 
 # ── Results ───────────────────────────────────────────────────────────────────
 backtest_summary(bt)

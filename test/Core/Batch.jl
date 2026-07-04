@@ -10,10 +10,10 @@
     global function batch_smoke_next(s::Strategy)
         length(s.market) == 1 || return            # buy once, on the first bar
         for (_, a) in s.market.data
-            placeOrder!(s.broker, Order(Buy(a, s.qty)))
+            place_order!(s.broker, Order(Buy(a, s.qty)))
         end
     end
-    @generateStrategy BatchSmoke batch_smoke_next batch_smoke_init qty::Int=1
+    @generate_strategy BatchSmoke batch_smoke_next batch_smoke_init qty::Int=1
 
     Random.seed!(1234)
     base       = Market([asset("BCH")])
@@ -43,19 +43,19 @@
         n = 3
         res = batch_backtest(n; threaded=false) do i
             M = Market([copy(base["BCH"])])
-            runTest(Backtest(M, BatchSmoke, 100_000; params=(qty=i,)))
+            run_test(Backtest(M, BatchSmoke, 100_000; params=(qty=i,)))
         end
         @test length(res) == n
         @test all(b -> b.completed, res)
         @test length(unique(b.broker.cash for b in res)) == n
     end
 
-    @testset "back-compat: zero-field @generateStrategy" begin
+    @testset "back-compat: zero-field @generate_strategy" begin
         global bc_init(_::Strategy) = nothing
         global bc_next(_::Strategy) = nothing
-        @generateStrategy BatchNoParam bc_next bc_init
+        @generate_strategy BatchNoParam bc_next bc_init
         bt = Backtest(Market([asset("ZZZ")]), BatchNoParam, 1000)   # 1-arg constructor still valid
-        runTest(bt)
+        run_test(bt)
         @test bt.completed
     end
 end

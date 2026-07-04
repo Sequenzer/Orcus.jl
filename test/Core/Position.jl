@@ -8,7 +8,7 @@
         @test is_closed(P)                 # fresh position holds nothing
         @test P.net_qty == 0.0
         @test P.requestToClose == false
-        requestToClose(P)
+        request_to_close(P)
         @test P.requestToClose == true
     end
 

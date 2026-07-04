@@ -2,8 +2,8 @@
 
 export Market,
        market,
-       addAsset!,
-       addAssets!,
+       add_asset!,
+       add_assets!,
        assets,
        start_date,
        to_asset,
@@ -33,7 +33,7 @@ mutable struct Market
         this.assets  = Asset[]
         this._length = 0
         for a in assets
-            addAsset!(this, a)
+            add_asset!(this, a)
         end
         return this
     end
@@ -64,7 +64,7 @@ height(M::Market)      = length(M.data)
 Base.size(M::Market)   = (height(M), length(M))
 Base.names(M::Market)  = keys(M.data)
 
-function addAsset!(M::Market, A::Asset)
+function add_asset!(M::Market, A::Asset)
     if haskey(M.data, A.ticker)                     # replacing: keep the vector in sync, no dup
         old = M.data[A.ticker]
         idx = findfirst(===(old), M.assets)
@@ -77,9 +77,9 @@ function addAsset!(M::Market, A::Asset)
     return M
 end
 
-function addAssets!(M::Market, assets::AbstractVector{Asset})
+function add_assets!(M::Market, assets::AbstractVector{Asset})
     for a in assets
-        addAsset!(M, a)
+        add_asset!(M, a)
     end
 end
 
@@ -91,7 +91,7 @@ Base.copy(M::Market) = Market([copy(A) for A in values(M.data)])
 function Base.getindex(M::Market, r::UnitRange{Int})
     newM = Market(Asset[])
     for (_, v) in M.data
-        addAsset!(newM, v[r])
+        add_asset!(newM, v[r])
     end
     return newM
 end
@@ -103,29 +103,29 @@ function shorten!(M::Market, U::UnitRange{Int})
     M._length = length(U)
 end
 
-function cutDataUntil(M::Market, n::Int)
+function cut_data_until(M::Market, n::Int)
     newMarket = Market()
     for (k, v) in M.data
-        newMarket.data[k] = cutDataUntil(v, n)
+        newMarket.data[k] = cut_data_until(v, n)
     end
     return newMarket
 end
 
-function takeData!(source::Market, target::Market, date::DateTime)
+function take_data!(source::Market, target::Market, date::DateTime)
     for (k, v) in target.data
-        haskey(source.data, k) && takeData!(source.data[k], v, date)
+        haskey(source.data, k) && take_data!(source.data[k], v, date)
     end
 end
-function takeData!(source::Market, target::Market, n::Int)
+function take_data!(source::Market, target::Market, n::Int)
     for (k, v) in target.data
-        haskey(source.data, k) && takeData!(source.data[k], v, n)
+        haskey(source.data, k) && take_data!(source.data[k], v, n)
     end
 end
 
-function getDomain(M::Market)
+function get_domain(M::Market)
     domain = Vector{DateTime}()
     for (_, v) in M.data
-        append!(domain, getDomain(v))
+        append!(domain, get_domain(v))
     end
     return sort(unique(domain))
 end
@@ -224,7 +224,7 @@ function trim_to_length(M::Market, n::Int)
     for (_, a) in M.data
         len   = length(a)
         start = max(1, len - n + 1)
-        addAsset!(M2, a[start:len])
+        add_asset!(M2, a[start:len])
     end
     return M2
 end

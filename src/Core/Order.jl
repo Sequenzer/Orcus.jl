@@ -9,9 +9,9 @@ export
 
 
 """
-    function Order(derivative::Derivative, date::Date, volume::Real)
+    Order(derivative::Derivative, volume::Real=1)
 
-A Order that has been fulfilled.
+An order to buy or sell a derivative, not yet fulfilled.
 
 ```jldoctest
 A=asset();

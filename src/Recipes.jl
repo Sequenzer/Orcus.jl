@@ -36,7 +36,7 @@ end
 
 # --- Derivative: payoff diagram -------------------------------------------------------------
 @recipe function f(D::Derivative)
-    v = uValue(D)
+    v = u_value(D)
     x = range(v - v / 2, v + v / 2)
     seriestype --> :line
     xguide     --> "Underlying"
