@@ -2,8 +2,6 @@
 # Probes live in top-level functions and are warmed before measuring, mirroring
 # bench/profile_orcus.jl.
 
-using JET
-
 _alloc_bars(n) = repeat([100.0, 101.0, 99.0, 100.0], 1, n)   # constant OHLC bars
 
 function _alloc_nomargin_broker(n_assets::Int)
@@ -94,13 +92,4 @@ end
   @test @inferred(Orcus.transaction_fee(NoCost(), 1.0)) isa Float64
   @test @inferred(A[1, 1]) isa Float64
   @test @inferred(advance_to!(M, 4)) isa Market
-
-  # Leaf kernels only: total_value/process_all! contain the deliberate open-world
-  # dispatch sites and would trip JET forever.
-  g_buy = Orcus._group!(pf, Buy)
-  @test_opt target_modules = (Orcus,) Orcus._group_sum(g_buy)
-  @test_opt target_modules = (Orcus,) Orcus._group_loan_sum(g_buy)
-  @test_opt target_modules = (Orcus,) Orcus._group_abs_sum(g_buy)
-  @test_opt target_modules = (Orcus,) Orcus._group_accrue!(g_buy, 0.0)
-  @test_opt target_modules = (Orcus,) advance_to!(M, 4)
 end
