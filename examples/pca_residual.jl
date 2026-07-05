@@ -6,30 +6,30 @@ unicodeplots()
 # Three assets trimmed to their common history length.
 # N=3, K=1 → residual space is 2D → correlation matrix has meaningful values.
 let tickers = ["AAPL", "GOOG", "KO"]
-    stocks = [load_stock(t) for t in tickers]
-    n = minimum(length(s) for s in stocks)
-    global M = market([s[(length(s) - n + 1):length(s)] for s in stocks])
+  stocks = [load_stock(t) for t in tickers]
+  n = minimum(length(s) for s in stocks)
+  global M = market([s[(length(s) - n + 1):length(s)] for s in stocks])
 end
 
 # ── Strategy definition ───────────────────────────────────────────────────────
 const TARGET_NOTIONAL = 1_000.0   # dollar value per leg
-const MIN_SPREAD      = 0.001     # minimum residual spread to trade (avoids noise)
+const MIN_SPREAD = 0.001     # minimum residual spread to trade (avoids noise)
 
 mutable struct PCAReversal <: Strategy
-    broker::Broker
-    market::Market
-    pca::RollingPCA
-    last_fit::Int
-    fit_window::Int
-    refit_every::Int
-    nms::Vector{String}
+  broker::Broker
+  market::Market
+  pca::RollingPCA
+  last_fit::Int
+  fit_window::Int
+  refit_every::Int
+  nms::Vector{String}
 
-    function PCAReversal(b::Broker)
-        new(b, b.market,
-            rolling_pca(120, 1),
-            0, 120, 20,
-            asset_names(b.market))
-    end
+  function PCAReversal(b::Broker)
+    new(b, b.market,
+      rolling_pca(120, 1),
+      0, 120, 20,
+      asset_names(b.market))
+  end
 end
 
 @strategy_methods PCAReversal pca_reversal_next pca_reversal_init
@@ -37,42 +37,42 @@ end
 function pca_reversal_init(s::PCAReversal) end
 
 function pca_reversal_next(s::PCAReversal)
-    n = length(s.market)
-    n < s.fit_window + 1 && return
+  n = length(s.market)
+  n < s.fit_window + 1 && return nothing
 
-    if n - s.last_fit >= s.refit_every
-        w = (n - s.fit_window + 1):n
-        R_window = returns_matrix(s.market, w)
-        fit!(s.pca, R_window)
-        s.last_fit = n
-    end
+  if n - s.last_fit >= s.refit_every
+    w = (n - s.fit_window + 1):n
+    R_window = returns_matrix(s.market, w)
+    fit!(s.pca, R_window)
+    s.last_fit = n
+  end
 
-    !s.pca.fitted && return
-    n < 2 && return
+  !s.pca.fitted && return nothing
+  n < 2 && return nothing
 
-    R_now = returns_matrix(s.market, (n - 1):n)
-    size(R_now, 2) < 1 && return
+  R_now = returns_matrix(s.market, (n - 1):n)
+  size(R_now, 2) < 1 && return nothing
 
-    r = R_now[:, 1]
-    _, eps = project(s.pca, r)
+  r = R_now[:, 1]
+  _, eps = project(s.pca, r)
 
-    # Skip if signal is too weak
-    maximum(eps) - minimum(eps) < MIN_SPREAD && return
+  # Skip if signal is too weak
+  maximum(eps) - minimum(eps) < MIN_SPREAD && return nothing
 
-    best  = argmin(eps)
-    worst = argmax(eps)
-    best == worst && return
+  best = argmin(eps)
+  worst = argmax(eps)
+  best == worst && return nothing
 
-    a_best  = s.market.data[s.nms[best]]
-    a_worst = s.market.data[s.nms[worst]]
+  a_best = s.market.data[s.nms[best]]
+  a_worst = s.market.data[s.nms[worst]]
 
-    # Dollar-neutral sizing: same notional on each leg regardless of share price
-    qty_best  = max(1, floor(Int, TARGET_NOTIONAL / value(a_best)))
-    qty_worst = max(1, floor(Int, TARGET_NOTIONAL / value(a_worst)))
+  # Dollar-neutral sizing: same notional on each leg regardless of share price
+  qty_best = max(1, floor(Int, TARGET_NOTIONAL / value(a_best)))
+  qty_worst = max(1, floor(Int, TARGET_NOTIONAL / value(a_worst)))
 
-    request_to_close_all!(s.broker)
-    place_order!(s.broker, Order(Buy(a_best),   qty_best))
-    place_order!(s.broker, Order(Sell(a_worst), qty_worst))
+  request_to_close_all!(s.broker)
+  place_order!(s.broker, Order(Buy(a_best), qty_best))
+  place_order!(s.broker, Order(Sell(a_worst), qty_worst))
 end
 
 # ── Run backtest ──────────────────────────────────────────────────────────────

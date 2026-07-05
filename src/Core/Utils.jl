@@ -8,7 +8,7 @@ export random_value,
 IncompleteVector = AbstractVector{<:Union{<:Real,Missing}}
 
 function random_value(x::Real, n::Int, f::Function)
-  arr::Vector{Real} = [x]
+  arr = Float64[x]
   while (length(arr) < n)
     old = last(arr)
     push!(arr, old + f(old))

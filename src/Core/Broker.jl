@@ -57,7 +57,8 @@ mutable struct Broker
   _close_keys::Vector{InstrumentKey}             # reusable scratch for resolve_portfolio!
   _pending_close::Bool                           # set when a close is requested; lets resolve_portfolio! skip the per-bar scan
   function Broker(
-    market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin()
+    market::Market, cash::Real; cost_model::CostModel=NoCost(),
+    margin_model::MarginModel=NoMargin(),
   )
     this = new()
     this.cash = Float64(cash)
@@ -76,10 +77,20 @@ mutable struct Broker
   end
 end
 
-broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin()) =
+broker(
+  market::Market,
+  cash::Real;
+  cost_model::CostModel=NoCost(),
+  margin_model::MarginModel=NoMargin(),
+) =
   Broker(market, cash; cost_model=cost_model, margin_model=margin_model)
 
-function broker(n_Assets::Int, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
+function broker(
+  n_Assets::Int,
+  cash::Real;
+  cost_model::CostModel=NoCost(),
+  margin_model::MarginModel=NoMargin(),
+)
   M = market()
   foreach(x -> add_asset!(M, asset()), 1:n_Assets)
   return Broker(M, cash; cost_model=cost_model, margin_model=margin_model)
@@ -417,14 +428,7 @@ function accrue_borrow_fee!(B::Broker)
   B.margin_model isa NoMargin && return B
   rate = borrow_rate(B.margin_model)
   rate == 0.0 && return B
-  for P in values(B.portfolio)
-    v = value(P)
-    exposure = v < 0.0 ? abs(v) : P.loan
-    exposure == 0.0 && continue
-    fee = exposure * rate
-    P.realized_pnl -= fee
-    B.cash -= fee
-  end
+  B.cash -= accrue_fees!(B.portfolio, rate)   # type-grouped barrier: no per-position boxing
   return B
 end
 
@@ -441,10 +445,7 @@ function check_margin!(B::Broker)
   B.margin_model isa NoMargin && return B
   pct = maintenance_margin_pct(B.margin_model)
   pct == 0.0 && return B
-  requirement = 0.0
-  for P in values(B.portfolio)
-    requirement += abs(value(P)) * pct
-  end
+  requirement = total_abs_value(B.portfolio) * pct   # type-grouped barrier: no per-position boxing
   requirement == 0.0 && return B
   equity = B.cash + total_value(B.portfolio) - total_loan(B.portfolio)
   if equity < requirement
@@ -524,9 +525,7 @@ end
 Mark all open positions for `ticker` to be closed on the next `process_all!` call.
 """
 function request_to_close!(B::Broker, ticker::String)
-  for P in values(B.portfolio)
-    P.derivative.underlying.ticker == ticker && request_to_close(P)
-  end
+  set_ticker_close!(B.portfolio, ticker)   # barrier per type-group; no per-position boxing
   B._pending_close = true
   return nothing
 end
@@ -536,8 +535,7 @@ end
 
 Return `true` if the broker currently holds any open position (long or short) in `ticker`.
 """
-has_position(B::Broker, ticker::String) =
-  any(P -> P.derivative.underlying.ticker == ticker && !is_closed(P), values(B.portfolio))
+has_position(B::Broker, ticker::String) = has_position(B.portfolio, ticker)
 
 """
     position_direction(B::Broker, ticker::String) -> Symbol
@@ -545,20 +543,7 @@ has_position(B::Broker, ticker::String) =
 Return `:long`, `:short`, or `:flat` for the current open position in `ticker`. Direction is
 taken from the sign of `value(P)` so it is correct for both `Buy`/`Sell` legs and options.
 """
-function position_direction(B::Broker, ticker::String)
-  for P in values(B.portfolio)
-    (P.derivative.underlying.ticker == ticker && !is_closed(P)) || continue
-    v = value(P)
-    return if v > 0
-      :long
-    elseif v < 0
-      :short
-    else
-      :flat
-    end
-  end
-  return :flat
-end
+position_direction(B::Broker, ticker::String) = position_direction(B.portfolio, ticker)
 
 """
     unrealized_pnl(B::Broker) -> Float64
@@ -600,7 +585,7 @@ cash_history(T.broker)
 ```
 """
 function cash_history(B::Broker)
-  cash_vector = Tuple{Int,Real}[(length(B), B.cash)]
+  cash_vector = Tuple{Int,Float64}[(length(B), B.cash)]
   cash = B.cash
   for t in reverse(B.history)
     cash -= t.delta_cash

@@ -93,7 +93,12 @@ mutable struct Order{D<:Derivative,K<:OrderKind}
   end
 end
 
-order(derivative::Derivative, volume::Real=1, kind::OrderKind=MarketOrder(); allow_partial::Bool=false) =
+order(
+  derivative::Derivative,
+  volume::Real=1,
+  kind::OrderKind=MarketOrder();
+  allow_partial::Bool=false,
+) =
   Order(derivative, volume, kind; allow_partial=allow_partial)
 
 """

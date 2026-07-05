@@ -24,7 +24,9 @@ During a backtest the broker's assets hold a SubArray view into the base market
 data — zero-copy bar advancement. Outside the loop (and after `copy`) it is
 always a concrete `Matrix{Float64}`.
 
-NaN is used as the sentinel for missing/gap bars — no Union boxing.
+NaN is used as the sentinel for missing/gap bars — no Union boxing. Indexing by an
+absent dataset name throws `KeyError`; name reads return concrete `Vector{Float64}`
+(window slice) or `Float64` (scalar).
 """
 mutable struct Asset
   ticker::String
@@ -90,10 +92,11 @@ Base.getindex(A::Asset, key1::Int, ::Colon) = A.data[key1, 1:(A.visible)]
 Base.getindex(A::Asset, ::Colon, key2::Int) = A.data[:, key2]
 Base.getindex(A::Asset, ::Colon, ::Colon) = A.data
 
-# Indexing by name — O(1) via _idx; bounded to the visible window (no lookahead)
+# Indexing by name — O(1) via _idx; bounded to the visible window (no lookahead).
+# Absent names throw KeyError; NaN stays the in-band sentinel for missing/gap bars.
 function Base.getindex(A::Asset, key::String)
   row = get(A._idx, key, 0)
-  row == 0 && return missing
+  row == 0 && throw(KeyError(key))
   A.data[row, 1:(A.visible)]
 end
 
@@ -103,7 +106,7 @@ end
 
 function Base.getindex(A::Asset, key::String, key2::Int)
   row = get(A._idx, key, 0)
-  row == 0 && return missing
+  row == 0 && throw(KeyError(key))
   A.data[row, key2]
 end
 

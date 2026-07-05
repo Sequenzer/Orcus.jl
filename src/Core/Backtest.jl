@@ -47,7 +47,9 @@ backtest(
   cost_model::CostModel=NoCost(),
   margin_model::MarginModel=NoMargin(),
 ) =
-  Backtest(market, strategy, cash; params=params, cost_model=cost_model, margin_model=margin_model)
+  Backtest(
+    market, strategy, cash; params=params, cost_model=cost_model, margin_model=margin_model
+  )
 
 @inline function process_day!(BT::Backtest)
   process_all!(BT.broker)

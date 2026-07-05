@@ -10,22 +10,19 @@ upward cross, or sells 10 units on a downward cross.
 """
 function crossover_next(s::Strategy)
   for (_, asset) in s.market.data
-    sma10 = asset["SMA10"]
-    sma20 = asset["SMA20"]
+    n = length(asset)
+    n < 2 && continue
+    # scalar reads: no window-slice copy per bar
+    fast = asset["SMA10", n]
+    slow = asset["SMA20", n]
+    fast_prev = asset["SMA10", n - 1]
+    slow_prev = asset["SMA20", n - 1]
 
-    if length(sma10) < 2
-      continue
-    end
-    ismissing(sma10[end]) && continue
-    ismissing(sma20[end]) && continue
-    ismissing(sma10[end - 1]) && continue
-    ismissing(sma20[end - 1]) && continue
-
-    if sma10[end] > sma20[end] && sma10[end - 1] <= sma20[end - 1]
+    if fast > slow && fast_prev <= slow_prev
       request_to_close_all!(s.broker)
       O = Order(Buy(asset, 10))
       place_order!(s.broker, O)
-    elseif sma10[end] < sma20[end] && sma10[end - 1] >= sma20[end - 1]
+    elseif fast < slow && fast_prev >= slow_prev
       request_to_close_all!(s.broker)
       O = Order(Sell(asset, 10))
       place_order!(s.broker, O)

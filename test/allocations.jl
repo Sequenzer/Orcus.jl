@@ -7,7 +7,9 @@ using JET
 _alloc_bars(n) = repeat([100.0, 101.0, 99.0, 100.0], 1, n)   # constant OHLC bars
 
 function _alloc_nomargin_broker(n_assets::Int)
-  assets = [Asset("AL$i", _alloc_bars(200), ["Open", "High", "Low", "Close"]) for i in 1:n_assets]
+  assets = [
+    Asset("AL$i", _alloc_bars(200), ["Open", "High", "Low", "Close"]) for i in 1:n_assets
+  ]
   M = Market(assets)
   advance_to!(M, 1)
   B = Broker(M, 1_000_000.0)
@@ -16,8 +18,10 @@ function _alloc_nomargin_broker(n_assets::Int)
     place_order!(B, Order(Buy(A), 10))
   end
   process_orders!(B)
-  advance_to!(M, 2); process_all!(B)
-  advance_to!(M, 3); process_all!(B)
+  advance_to!(M, 2);
+  process_all!(B)
+  advance_to!(M, 3);
+  process_all!(B)
   return M, B
 end
 
@@ -29,8 +33,10 @@ function _alloc_margin_broker()
   sizehint!(B.equity_history, 256)
   place_order!(B, Order(Buy(A), 100))
   process_orders!(B)
-  advance_to!(M, 2); process_all!(B)
-  advance_to!(M, 3); process_all!(B)
+  advance_to!(M, 2);
+  process_all!(B)
+  advance_to!(M, 3);
+  process_all!(B)
   return M, B
 end
 
@@ -59,7 +65,8 @@ end
 
   @testset "0 B — strategy-facing helpers" begin
     _, B = _alloc_margin_broker()
-    has_position(B, "ML"); position_direction(B, "ML")
+    has_position(B, "ML");
+    position_direction(B, "ML")
     @test (@allocated has_position(B, "ML")) == 0
     @test (@allocated position_direction(B, "ML")) == 0
     @test has_position(B, "ML")

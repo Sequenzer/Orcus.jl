@@ -92,7 +92,9 @@ from `realized_pnl`. `borrowed` is the broker-financed dollar amount of *this* f
   through zero, the remainder opens a fresh lot at `fill_price` (with `loan == 0.0`, since
   the proportional repay above already drove it there on a full close).
 """
-function apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0; borrowed::Real=0.0)
+function apply_trade!(
+  P::Position, qty::Real, fill_price::Real, fee::Real=0.0; borrowed::Real=0.0
+)
   qty = Float64(qty)
   fill_price = Float64(fill_price)
   P.realized_pnl -= Float64(fee)
