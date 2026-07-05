@@ -2,18 +2,17 @@
 
 export load_stock, load_stocks, available_stocks, AAPL, GOOG
 
+const _STOCKS_DATA_DIR = joinpath(@__DIR__, "data")
+
 """
     load_stock(name::String)
 
-    Load the stock data from the csv file in the data folder
+Load the stock data from the CSV file `data/<name>.csv`.
 
 ```julia
 load_stock("GOOG")
-
 ```
 """
-const _STOCKS_DATA_DIR = joinpath(@__DIR__, "data")
-
 function load_stock(name::String)
   dt = read_stock_csv(joinpath(_STOCKS_DATA_DIR, "$(name).csv"))
   return asset(dt, name)

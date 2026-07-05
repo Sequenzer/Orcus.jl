@@ -13,7 +13,7 @@ cursor and any indicators attached in `init` are private to the job) and builds 
 threaded result is identical to the sequential one.
 
 `grid` is a vector of `NamedTuple`s forwarded as keyword arguments to the strategy constructor.
-Declare the swept parameters as typed fields with [`@generate_strategy`](@ref) (or a custom
+Declare the swept parameters as typed fields with `@generate_strategy` (or a custom
 `@strategy_methods` struct whose constructor accepts the same keywords):
 
 ```julia

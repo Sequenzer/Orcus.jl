@@ -19,10 +19,12 @@ the same instrument aggregate here:
                   convention (raw, *excluding* fees).
 - `realized_pnl`— realized trading P&L net of all commissions and slippage charged on
                   this instrument.
+- `loan`        — broker-financed dollar amount still owed against this position (`0.0`
+                  unless opened under a margin model with `initial_margin_pct < 1.0`).
 
 Fees are *not* folded into `avg_cost` (so mark-to-market basis stays clean); they are
-subtracted from `realized_pnl` as they occur. Equity (`cash + Σ value(P)`) is the source
-of truth and already reflects fees via the cash ledger.
+subtracted from `realized_pnl` as they occur. Equity (`cash + Σ value(P) - Σ loan`) is the
+source of truth and already reflects fees via the cash ledger.
 
 ```jldoctest
 A = asset()
@@ -39,6 +41,7 @@ mutable struct Position{D<:Derivative}
   net_qty::Float64         # signed; 0 == closed
   avg_cost::Float64        # per-unit weighted-avg entry (raw, fee-exclusive)
   realized_pnl::Float64
+  loan::Float64            # broker-financed $ still owed against this position; 0.0 unless margin-financed
   requestToClose::Bool
 
   function Position(D::Der) where {Der<:Derivative}
@@ -47,6 +50,7 @@ mutable struct Position{D<:Derivative}
     self.net_qty = 0.0
     self.avg_cost = 0.0
     self.realized_pnl = 0.0
+    self.loan = 0.0
     self.requestToClose = false
     return self
   end
@@ -74,17 +78,21 @@ realized_pnl(P::Position) = P.realized_pnl
 is_closed(P::Position) = P.net_qty == 0.0
 
 """
-    apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0)
+    apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0; borrowed::Real=0.0)
 
 Fold a fill of signed `qty` units at per-unit `fill_price` (raw, fee-exclusive) into the
 netted position. `fee` is the total commission+slippage on the fill; it is subtracted
-from `realized_pnl`.
+from `realized_pnl`. `borrowed` is the broker-financed dollar amount of *this* fill
+(`0.0` unless opening/adding under a margin model) — see `loan` on `Position`.
 
-- Adding (same sign / opening): updates the weighted-average `avg_cost`.
-- Reducing/closing (opposite sign): realizes P&L on the closed quantity. If the fill
-  flips the position through zero, the remainder opens a fresh lot at `fill_price`.
+- Adding (same sign / opening): updates the weighted-average `avg_cost` and accumulates
+  `loan += borrowed`.
+- Reducing/closing (opposite sign): realizes P&L on the closed quantity and repays `loan`
+  proportionally to the fraction of the position closed. If the fill flips the position
+  through zero, the remainder opens a fresh lot at `fill_price` (with `loan == 0.0`, since
+  the proportional repay above already drove it there on a full close).
 """
-function apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0)
+function apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0; borrowed::Real=0.0)
   qty = Float64(qty)
   fill_price = Float64(fill_price)
   P.realized_pnl -= Float64(fee)
@@ -93,11 +101,13 @@ function apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0)
     # opening or adding in the same direction → weighted average
     new_qty = P.net_qty + qty
     P.avg_cost = (P.avg_cost * P.net_qty + fill_price * qty) / new_qty
+    P.loan += Float64(borrowed)
     P.net_qty = new_qty
   else
     # reducing, closing, or flipping
     closed = min(abs(qty), abs(P.net_qty))
     P.realized_pnl += closed * (fill_price - P.avg_cost) * sign(P.net_qty)
+    P.loan -= P.loan * (closed / abs(P.net_qty))
     new_qty = P.net_qty + qty
     if new_qty != 0.0 && sign(new_qty) != sign(P.net_qty)
       P.avg_cost = fill_price   # flipped through zero → new lot

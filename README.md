@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/Sequenzer/Orcus.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/Sequenzer/Orcus.jl/actions/workflows/CI.yml)
 [![codecov](https://codecov.io/gh/Sequenzer/Orcus.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Sequenzer/Orcus.jl)
+[![docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://sequenzer.github.io/Orcus.jl/dev)
 
 A quantitative backtesting engine for Julia. Write a strategy as two functions, run it
 bar-by-bar over historical data, and inspect the equity curve, trades, and portfolio.

@@ -1,0 +1,58 @@
+<svg viewBox="0 0 440 360" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="edgeGrad" gradientUnits="userSpaceOnUse" x1="36" y1="0" x2="404" y2="0">
+      <stop offset="0"    stop-color="#000"/>
+      <stop offset="0.30" stop-color="#fff"/>
+      <stop offset="0.70" stop-color="#fff"/>
+      <stop offset="1"    stop-color="#000"/>
+    </linearGradient>
+    <mask id="edgeFade" maskUnits="userSpaceOnUse" x="0" y="0" width="440" height="360">
+      <rect x="0" y="0" width="440" height="360" fill="url(#edgeGrad)"/>
+    </mask>
+    <linearGradient id="speedGrad" gradientUnits="userSpaceOnUse" x1="46" y1="0" x2="138" y2="0">
+      <stop offset="0" stop-color="#9558b2" stop-opacity="0"/>
+      <stop offset="1" stop-color="#9558b2" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+
+  <g mask="url(#edgeFade)">
+    <line x1="36" y1="250" x2="404" y2="250" stroke="#cfcdd9" stroke-width="2"/>
+
+    <!-- context bars, mirrored on each side, fading to the edges -->
+    <rect x="48"  y="198" width="24" height="52"  rx="5" fill="#c3c1d0"/>
+    <rect x="88"  y="160" width="24" height="90"  rx="5" fill="#c3c1d0"/>
+    <rect x="328" y="160" width="24" height="90"  rx="5" fill="#c3c1d0"/>
+    <rect x="368" y="198" width="24" height="52"  rx="5" fill="#c3c1d0"/>
+
+    <!-- trailing edge: grey bar leaving the window -->
+    <rect x="128" y="140" width="24" height="110" rx="5" fill="#c3c1d0"/>
+
+    <!-- active window bars -->
+    <rect x="168" y="148" width="24" height="102" rx="5" fill="#5a70c1"/>
+    <rect x="208" y="98"  width="24" height="152" rx="5" fill="#55924d"/>
+    <rect x="248" y="130" width="24" height="120" rx="5" fill="#b55755"/>
+
+    <!-- leading edge bar overlapping the right border -->
+    <rect x="288" y="168" width="24" height="82"  rx="5" fill="#c3c1d0"/>
+  </g>
+
+  <!-- window, centred at x=220 -->
+  <rect x="140" y="84" width="160" height="180" rx="16"
+        fill="none" stroke="#9558b2" stroke-width="6"/>
+
+  <!-- motion / speed lines trailing left as the window slides right -->
+  <g stroke="url(#speedGrad)" stroke-width="4" stroke-linecap="round">
+    <line x1="64"  y1="118" x2="136" y2="118"/>
+    <line x1="90"  y1="126" x2="136" y2="126"/>
+
+    <line x1="56"  y1="174" x2="136" y2="174"/>
+
+    <line x1="86"  y1="220" x2="136" y2="220"/>
+    <line x1="62"  y1="226" x2="136" y2="226"/>
+    <line x1="98"  y1="232" x2="136" y2="232"/>
+  </g>
+
+  <text x="220" y="332" text-anchor="middle" font-size="46" font-weight="700" letter-spacing="-1">
+    <tspan fill="#2f2b3a">Orcus</tspan><tspan fill="#9558b2" font-weight="600">.jl</tspan>
+  </text>
+</svg>

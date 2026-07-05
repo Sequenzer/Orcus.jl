@@ -13,6 +13,7 @@ using Tables
     include("Core/Derivative.jl")
     include("Core/Market.jl")
     include("Core/Cost.jl")
+    include("Core/Margin.jl")
     include("Core/Position.jl")
     include("Core/Trade.jl")
     include("Core/Order.jl")

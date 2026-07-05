@@ -64,5 +64,39 @@
         apply_trade!(P, 10.0, 100.0, 5.0)  # 5.0 fee on open
         @test P.realized_pnl ≈ -5.0
     end
+
+    @testset "loan (margin financing)" begin
+        Random.seed!(1234);
+        A = asset()
+
+        # opening with borrowed sets loan; adding accumulates it
+        P = Position(Buy(A))
+        apply_trade!(P, 10.0, 100.0, 0.0; borrowed=500.0)   # 1000 notional, 500 financed
+        @test P.loan == 500.0
+        apply_trade!(P, 10.0, 100.0, 0.0; borrowed=500.0)   # add another 1000 notional, 500 financed
+        @test P.loan == 1000.0
+
+        # reducing repays proportionally to the fraction closed
+        apply_trade!(P, -10.0, 100.0)                       # close half (10 of 20)
+        @test P.net_qty == 10.0
+        @test P.loan ≈ 500.0
+
+        # full close drives loan to exactly 0.0
+        apply_trade!(P, -10.0, 100.0)
+        @test is_closed(P)
+        @test P.loan == 0.0
+
+        # flip-through-zero also drives loan to exactly 0.0, even without repaying explicitly
+        Q = Position(Buy(A))
+        apply_trade!(Q, 10.0, 100.0, 0.0; borrowed=400.0)
+        apply_trade!(Q, -15.0, 110.0)                        # close 10, flip to -5
+        @test Q.net_qty == -5.0
+        @test Q.loan == 0.0
+
+        # default borrowed=0.0 — every pre-margin call site is unaffected
+        R = Position(Buy(A))
+        apply_trade!(R, 10.0, 100.0)
+        @test R.loan == 0.0
+    end
 end
 end

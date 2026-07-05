@@ -29,10 +29,10 @@ mutable struct Backtest{T<:Strategy}
   strategy::T
   completed::Bool
   function Backtest(market::Market, strategy::Type, cash::Real=1000;
-    params=(;), cost_model::CostModel=NoCost())
+    params=(;), cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
     this = new{strategy}()
     this.market = market
-    this.broker = Broker(market, cash; cost_model=cost_model)
+    this.broker = Broker(market, cash; cost_model=cost_model, margin_model=margin_model)
     this.strategy = strategy(this.broker; params...)
     this.completed = false
     return this
@@ -45,8 +45,9 @@ backtest(
   cash::Real=1000;
   params=(;),
   cost_model::CostModel=NoCost(),
+  margin_model::MarginModel=NoMargin(),
 ) =
-  Backtest(market, strategy, cash; params=params, cost_model=cost_model)
+  Backtest(market, strategy, cash; params=params, cost_model=cost_model, margin_model=margin_model)
 
 @inline function process_day!(BT::Backtest)
   process_all!(BT.broker)

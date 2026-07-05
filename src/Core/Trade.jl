@@ -26,8 +26,8 @@ mutable struct Trade{D<:Derivative}
   date::Int
   delta_cash::Float64
   function Trade(
-    O::Order{D}, date::Int=length(O.derivative.underlying)
-  ) where {D<:Derivative}
+    O::Order{D,K}, date::Int=length(O.derivative.underlying)
+  ) where {D<:Derivative,K<:OrderKind}
     self = new{D}()
     self.derivative = O.derivative
     self.volume = Float64(O.volume)

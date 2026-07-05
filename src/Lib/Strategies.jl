@@ -3,27 +3,10 @@ export crossover_init,
   crossover_next
 
 """
-    
-    CrossOverStrategy(broker::Broker)
+    crossover_next(s::Strategy)
 
-An SMA10/SMA20 crossover strategy: buy on an upward cross, sell on a downward cross.
-
-## Example
-```jldoctest
-Random.seed!(1234);
-x=asset();
-y=asset();
-M=market([x,y]);
-B = broker(M,1000);
-s = CrossOverStrategy(B)
-init(s)
-x.data
-print(x)
-collect(x.data["SMA10"])[end]
-
-# output
-
-```
+`next` for `CrossOverStrategy`: closes all positions and buys 10 units on an SMA10/SMA20
+upward cross, or sells 10 units on a downward cross.
 """
 function crossover_next(s::Strategy)
   for (_, asset) in s.market.data

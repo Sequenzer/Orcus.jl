@@ -12,6 +12,7 @@
 
 export Portfolio,
   total_value,
+  total_loan,
   get_or_create!
 
 """
@@ -86,6 +87,39 @@ end
 # Open-world fallback: accumulate into `_acc` so the runtime-dispatched call returns `nothing`.
 _add_group_value!(pf::Portfolio, g::Group{D}) where {D} = (
   pf._acc += _group_sum(g); nothing
+)
+
+"""
+    total_loan(pf::Portfolio) -> Float64
+
+Sum of `P.loan` over all open positions — the aggregate broker-financed debt outstanding.
+Structurally identical to [`total_value`](@ref) (same union-split, allocation-free walk);
+always `0.0` unless positions were opened under a margin model with `initial_margin_pct < 1.0`.
+"""
+function total_loan(pf::Portfolio)
+  s = 0.0
+  for g in pf.groups
+    if g isa Group{Buy}
+      s += _group_loan_sum(g)
+    elseif g isa Group{Sell}
+      s += _group_loan_sum(g)
+    else
+      pf._acc = 0.0
+      _add_group_loan!(pf, g)
+      s += pf._acc
+    end
+  end
+  return s
+end
+@inline _group_loan_sum(g::Group{D}) where {D} = begin
+  s = 0.0
+  @inbounds for P in g.positions
+    s += P.loan
+  end
+  s
+end
+_add_group_loan!(pf::Portfolio, g::Group{D}) where {D} = (
+  pf._acc += _group_loan_sum(g); nothing
 )
 
 # ── per-order: locate/create the typed group and position ─────────────────────

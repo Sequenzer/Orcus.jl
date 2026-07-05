@@ -17,15 +17,19 @@ export
   realized_pnl,
   cash_history,
   to_index,
-  status
+  status,
+  accrue_borrow_fee!,
+  check_margin!
 
 """
 
-    Broker(market::Market, cash::Real; cost_model::CostModel=NoCost())
+    Broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
 
 The order-executing unit of the system. Holds cash, a `Market`, a pluggable transaction
-`cost_model`, a netted `portfolio` (keyed by `instrument_key`), the open `orders` queue
-(FIFO), the executed-trade `history`, a list of `rejected` orders, and the `equity_history`.
+`cost_model`, a pluggable `margin_model`, a netted `portfolio` (keyed by `instrument_key`),
+the open `orders` queue (FIFO), the executed-trade `history`, a list of `rejected` orders,
+a list of `margin_calls` (bar indices where a maintenance breach forced a full liquidation),
+and the `equity_history`.
 
 ```jldoctest
 Random.seed!(1234);
@@ -43,22 +47,28 @@ mutable struct Broker
   cash::Float64
   market::Market
   cost_model::CostModel
+  margin_model::MarginModel                      # pluggable leverage/liquidation model
   portfolio::Portfolio                           # positions grouped by concrete derivative type
   orders::Vector{Order}                          # FIFO queue
   history::Vector{Trade}
   rejected::Vector{Tuple{Order,String,Int}}      # (order, reason, bar)
+  margin_calls::Vector{Int}                      # bar indices where a maintenance breach forced a liquidation
   equity_history::Vector{Float64}
   _close_keys::Vector{InstrumentKey}             # reusable scratch for resolve_portfolio!
   _pending_close::Bool                           # set when a close is requested; lets resolve_portfolio! skip the per-bar scan
-  function Broker(market::Market, cash::Real; cost_model::CostModel=NoCost())
+  function Broker(
+    market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin()
+  )
     this = new()
     this.cash = Float64(cash)
     this.market = market
     this.cost_model = cost_model
+    this.margin_model = margin_model
     this.portfolio = Portfolio()
     this.orders = Vector{Order}()
     this.history = Vector{Trade}()
     this.rejected = Tuple{Order,String,Int}[]
+    this.margin_calls = Int[]
     this.equity_history = Float64[]
     this._close_keys = InstrumentKey[]
     this._pending_close = false
@@ -66,13 +76,13 @@ mutable struct Broker
   end
 end
 
-broker(market::Market, cash::Real; cost_model::CostModel=NoCost()) =
-  Broker(market, cash; cost_model=cost_model)
+broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin()) =
+  Broker(market, cash; cost_model=cost_model, margin_model=margin_model)
 
-function broker(n_Assets::Int, cash::Real; cost_model::CostModel=NoCost())
+function broker(n_Assets::Int, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
   M = market()
   foreach(x -> add_asset!(M, asset()), 1:n_Assets)
-  return Broker(M, cash; cost_model=cost_model)
+  return Broker(M, cash; cost_model=cost_model, margin_model=margin_model)
 end
 
 Base.show(io::IO, B::Broker) = print(
@@ -100,44 +110,150 @@ function place_order!(B::Broker, O::Order)
   return nothing
 end
 
+@inline function transaction_fee(cm::CostModel, notional::Real)
+  c = transaction_cost(cm, notional)
+  return c.commission + c.slippage
+end
+
+"""
+    affordable_quantity(cm::CostModel, fill_price::Real, qty::Real, cash::Real; margin_pct::Real=1.0) -> Float64
+
+Largest `|qty|`-capped signed quantity (same sign as `qty`) whose `margin_pct` fraction of
+notional plus transaction cost fits within `cash`, at `fill_price` per unit. `margin_pct=1.0`
+(the default) reproduces the pre-margin behavior exactly — full notional required. Assumes
+cost scales linearly with `|notional|` — true for `NoCost` and `FlatCost`, the only cost
+models this package ships. A custom non-linear `CostModel` is out of scope for partial-fill
+sizing.
+"""
+function affordable_quantity(
+  cm::CostModel, fill_price::Real, qty::Real, cash::Real; margin_pct::Real=1.0
+)
+  fill_price * qty <= 0.0 && return Float64(qty)   # inflow (or zero) — no cash constraint
+  c = transaction_cost(cm, 1.0)
+  rho = c.commission + c.slippage
+  max_qty = (cash / (margin_pct + rho)) / abs(fill_price)
+  return sign(qty) * min(abs(qty), max(max_qty, 0.0))
+end
+
+"""
+    affordable_short_quantity(rate::Real, fill_price::Real, qty::Real, cash::Real) -> Float64
+
+Largest `|qty|`-capped signed quantity (same sign as `qty`) whose notional times `rate`
+(the resolved [`short_margin_rate`](@ref)) fits within `cash`. `rate=0.0` (the `NoMargin`
+default) returns `qty` unchanged — unconstrained, matching the pre-margin behavior for shorts.
+"""
+function affordable_short_quantity(rate::Real, fill_price::Real, qty::Real, cash::Real)
+  rate == 0.0 && return Float64(qty)
+  max_qty = cash / (rate * abs(fill_price))
+  return sign(qty) * min(abs(qty), max(max_qty, 0.0))
+end
+
+@inline function _reject!(B::Broker, O::Order, date::Int, strict::Bool)
+  strict && error("Insufficient funds")
+  push!(B.rejected, (O, "insufficient funds", date))
+  return B
+end
+
 """
     execute!(B::Broker, O::Order, date::Int=length(B); strict::Bool=false)
 
-The single fill path used by every order-processing function. Applies the broker's
-`cost_model`, checks funds, books the cash impact, records the `Trade`, and folds the
-fill into the netted `Position` for `instrument_key(O.derivative)`.
+The single fill path used by every order-processing function. Checks whether `O` triggers on
+`date` via [`check_trigger`](@ref) — market orders always do, limit/stop orders only when the
+bar's range reaches their trigger price. On trigger, resolves how much cash this fill actually
+needs:
 
-Insufficient funds are recorded in `B.rejected`, unless `strict=true`, in which case they error.
+- A same-direction **long** open/add (adding to or opening a position in the same direction as
+  the fill) is margin-financeable: only `notional*initial_margin_pct(B.margin_model) + fee` is
+  drawn from cash, the rest is broker-financed (`Position.loan`).
+- A same-direction **short** open/add requires `abs(notional)*short_margin_rate(B.margin_model)`
+  cash on hand as a pre-condition (no financing — proceeds still credit in full, as always).
+- A **reducing or flipping** fill (opposite sign of the position's `net_qty`) is never
+  margin-financed — full `notional+fee` required, exactly the pre-margin formula. Any
+  outstanding `loan` on the position is repaid proportionally to the fraction closed.
+
+With `B.margin_model = NoMargin()` (the default), `initial_margin_pct == 1.0` and
+`short_margin_rate == 0.0` reproduce today's exact formulas for both sides.
+
+Insufficient funds are recorded in `B.rejected`, unless `strict=true`, in which case they
+error — unless `O.allow_partial` is set, in which case the affordable fraction fills instead
+and the order stays open in the book for the remainder. A resting, untriggered limit/stop order
+is left untouched (not fulfilled, not rejected).
 """
 function execute!(
-  B::Broker, O::Order{D}, date::Int=length(B); strict::Bool=false
-) where {D<:Derivative}
+  B::Broker, O::Order{D,K}, date::Int=length(B); strict::Bool=false
+) where {D<:Derivative,K<:OrderKind}
   if isfulfilled(O)
     strict && error("Order already fulfilled")
     return B
   end
-  notional = price(O)                                   # signed gross
-  c = transaction_cost(B.cost_model, notional)
-  fee = c.commission + c.slippage
-  Δ = notional + fee                             # cash out of the account
 
-  if B.cash - Δ < 0
-    strict && error("Insufficient funds")
-    push!(B.rejected, (O, "insufficient funds", date))
+  triggered, fill_price = check_trigger(O, B, date)
+  if !triggered
+    strict && error("Order not triggered")
     return B
   end
 
-  fulfill(O, date)
-  B.cash -= Δ
-
-  T = Trade(O, date)
-  T.delta_cash = -Δ
-  push!(B.history, T)
-
+  qty = remaining(O)
   key = instrument_key(O.derivative)
   P = get_or_create!(B.portfolio, key, O.derivative)  # typed Position{D}
   P.derivative = O.derivative                           # refresh mark-to-market reference
-  apply_trade!(P, O.volume, price(O.derivative), fee)
+
+  opening_or_adding = P.net_qty == 0.0 || sign(qty) == sign(P.net_qty)
+  notional = fill_price * qty                           # signed gross
+  borrowed = 0.0
+  fee = 0.0
+
+  if opening_or_adding && notional > 0.0
+    # long open/add — margin-financeable
+    pct = initial_margin_pct(B.margin_model)
+    fee = transaction_fee(B.cost_model, notional)
+    if B.cash - (notional * pct + fee) < 0
+      O.allow_partial || return _reject!(B, O, date, strict)
+      qty = affordable_quantity(B.cost_model, fill_price, qty, B.cash; margin_pct=pct)
+      qty == 0.0 && return _reject!(B, O, date, strict)
+      notional = fill_price * qty
+      fee = transaction_fee(B.cost_model, notional)
+    end
+    borrowed = notional - notional * pct
+  elseif opening_or_adding
+    # short open/add (notional <= 0) — skin-in-the-game gate, no financing
+    rate = short_margin_rate(B.margin_model)
+    if B.cash < abs(notional) * rate
+      O.allow_partial || return _reject!(B, O, date, strict)
+      qty = affordable_short_quantity(rate, fill_price, qty, B.cash)
+      qty == 0.0 && return _reject!(B, O, date, strict)
+      notional = fill_price * qty
+    end
+    fee = transaction_fee(B.cost_model, notional)
+  else
+    # reducing or flipping — never margin-financed, exactly the pre-margin formula
+    fee = transaction_fee(B.cost_model, notional)
+    if B.cash - (notional + fee) < 0
+      if O.allow_partial && (notional + fee) > 0
+        qty = affordable_quantity(B.cost_model, fill_price, qty, B.cash)
+        qty == 0.0 && return _reject!(B, O, date, strict)
+        notional = fill_price * qty
+        fee = transaction_fee(B.cost_model, notional)
+      else
+        return _reject!(B, O, date, strict)
+      end
+    end
+  end
+
+  loan_before = P.loan
+  apply_trade!(P, qty, fill_price, fee; borrowed=borrowed)
+  Δ = (notional + fee) - (P.loan - loan_before)   # actual cash movement, net of any loan draw/repay
+
+  O.remaining -= qty
+  if O.remaining == 0.0
+    O.fulfilled = true
+    O.fulfillment_date = date
+  end
+  B.cash -= Δ
+
+  T = Trade(O.derivative, qty, date, -Δ)
+  push!(B.history, T)
+
   is_closed(P) && drop!(B.portfolio, key, D)
   return B
 end
@@ -235,13 +351,14 @@ used by [`resolve_portfolio!`](@ref).
 """
 function close_position!(B::Broker, key::InstrumentKey, P::Position, date::Int)
   notional = value(P)                                   # signed market value liquidated
-  c = transaction_cost(B.cost_model, notional)
-  fee = c.commission + c.slippage
+  fee = transaction_fee(B.cost_model, notional)
 
-  # reverse the whole position at the current per-unit mark; realizes P&L, nets to zero
+  # reverse the whole position at the current per-unit mark; realizes P&L, nets to zero,
+  # and (if margin-financed) repays the outstanding loan in full
+  loan_before = P.loan
   apply_trade!(P, -P.net_qty, value(P.derivative), fee)
 
-  Δ = notional - fee                                    # cash received (paid for shorts), less fees
+  Δ = notional - fee + (P.loan - loan_before)   # cash received (paid for shorts), less fees and loan repayment
   B.cash += Δ
 
   # net_qty is 0 after the close above, so the recorded close-trade volume is 0.0 (preserves
@@ -256,8 +373,10 @@ end
 """
     process_orders!(B::Broker)
 
-Process the whole orderbook in **FIFO** order via [`execute!`](@ref). Unfillable orders are
-recorded in `B.rejected` rather than silently discarded. The queue is empty on return.
+Process the whole orderbook in **FIFO** order via [`execute!`](@ref). Orders that fully fill
+(the whole book, for plain market orders) or are rejected for insufficient funds are removed;
+resting limit/stop orders that don't trigger on this bar, and partially-filled orders with
+quantity still outstanding, stay queued for a future bar.
 
 ```jldoctest
 Random.seed!(1234);
@@ -276,9 +395,62 @@ length(B.history)
 """
 function process_orders!(B::Broker)
   today = length(B)
-  while !isempty(B.orders)
-    O = popfirst!(B.orders)                           # FIFO
+  i = firstindex(B.orders)
+  while i <= lastindex(B.orders)
+    O = B.orders[i]
+    n_rejected = length(B.rejected)
     execute!(B, O, today)
+    rejected_now = length(B.rejected) > n_rejected
+    (isfulfilled(O) || rejected_now) ? deleteat!(B.orders, i) : (i += 1)
+  end
+  return B
+end
+
+"""
+    accrue_borrow_fee!(B::Broker)
+
+Charge one bar's worth of `borrow_rate(B.margin_model)` interest against every open position's
+financed exposure — `abs(value(P))` for a short, `P.loan` for a margin-financed long. No-op
+under `NoMargin` (or any model with `borrow_rate == 0.0`).
+"""
+function accrue_borrow_fee!(B::Broker)
+  B.margin_model isa NoMargin && return B
+  rate = borrow_rate(B.margin_model)
+  rate == 0.0 && return B
+  for P in values(B.portfolio)
+    v = value(P)
+    exposure = v < 0.0 ? abs(v) : P.loan
+    exposure == 0.0 && continue
+    fee = exposure * rate
+    P.realized_pnl -= fee
+    B.cash -= fee
+  end
+  return B
+end
+
+"""
+    check_margin!(B::Broker)
+
+If account equity (`cash + total_value(portfolio) - total_loan(portfolio)`) falls below the
+aggregate maintenance requirement (`Σ abs(value(P))*maintenance_margin_pct(B.margin_model)`),
+records the bar in `B.margin_calls` and liquidates the whole book via
+[`request_to_close_all!`](@ref)/[`resolve_portfolio!`](@ref). No-op under `NoMargin` (or any
+model with `maintenance_margin_pct == 0.0`).
+"""
+function check_margin!(B::Broker)
+  B.margin_model isa NoMargin && return B
+  pct = maintenance_margin_pct(B.margin_model)
+  pct == 0.0 && return B
+  requirement = 0.0
+  for P in values(B.portfolio)
+    requirement += abs(value(P)) * pct
+  end
+  requirement == 0.0 && return B
+  equity = B.cash + total_value(B.portfolio) - total_loan(B.portfolio)
+  if equity < requirement
+    push!(B.margin_calls, length(B))
+    request_to_close_all!(B)
+    resolve_portfolio!(B)
   end
   return B
 end
@@ -287,7 +459,13 @@ function process_all!(B::Broker)
   @inline
   isempty(B.orders) || process_orders!(B)        # skip the call entirely on no-order bars
   B._pending_close && resolve_portfolio!(B)      # skip the call entirely on no-close bars
-  equity = B.cash + total_value(B.portfolio)     # type-grouped barrier: no per-position boxing
+  loan = 0.0
+  if !(B.margin_model isa NoMargin)              # single check gates both calls below and the loan read
+    accrue_borrow_fee!(B)
+    check_margin!(B)
+    loan = total_loan(B.portfolio)
+  end
+  equity = B.cash + total_value(B.portfolio) - loan   # type-grouped barrier: no per-position boxing
   push!(B.equity_history, equity)
   return B
 end
