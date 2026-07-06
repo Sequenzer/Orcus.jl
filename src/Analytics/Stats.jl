@@ -16,7 +16,8 @@ export sharpe_ratio,
   omega_ratio,
   ulcer_index,
   information_ratio,
-  bah_equity
+  bah_equity,
+  infer_periods_per_year
 
 """
     sharpe_ratio(equity; rf=0.0, periods_per_year=252) -> Float64
@@ -327,25 +328,47 @@ function bah_equity(market::Market, cash::Real; key::String="Close")
 end
 
 """
-    extended_summary(bt::Backtest; benchmark=nothing)
+    infer_periods_per_year(axis) -> Int
+
+Bars per year implied by the median spacing of a time axis: intraday bars scale by bars
+per trading day, daily → 252, weekly → 52, monthly → 12, coarser → 1.
+"""
+function infer_periods_per_year(axis::Vector{DateTime})
+  length(axis) < 2 && return 252
+  day_ms = 86_400_000.0
+  spacing = median(Dates.value.(diff(axis)))
+  spacing <= 0 && return 252
+  spacing < day_ms && return round(Int, 252 * day_ms / spacing)
+  spacing <= 4 * day_ms && return 252
+  spacing <= 10 * day_ms && return 52
+  spacing <= 45 * day_ms && return 12
+  return 1
+end
+infer_periods_per_year(M::Market) =
+  M.axis === nothing ? 252 : infer_periods_per_year(M.axis)
+
+"""
+    extended_summary(bt::Backtest; benchmark=nothing, periods_per_year=inferred)
 
 Print a detailed performance summary including CAGR, Sortino, Calmar,
 Omega, VaR, CVaR, and Ulcer Index. Pass a `benchmark` equity curve
 (e.g. from `bah_equity`) to also print the Information Ratio.
+`periods_per_year` defaults to [`infer_periods_per_year`](@ref) of the market.
 """
-function extended_summary(bt::Backtest; benchmark::Union{Vector{Float64},Nothing}=nothing)
+function extended_summary(bt::Backtest; benchmark::Union{Vector{Float64},Nothing}=nothing,
+  periods_per_year::Int=infer_periods_per_year(bt.broker.market))
   eq = bt.broker.equity_history
   isempty(eq) && (println("No equity history."); return nothing)
 
   start_eq = Float64(first(eq))
   end_eq = Float64(last(eq))
   total_ret = (end_eq - start_eq) / start_eq * 100
-  cagr_val = annualized_return(eq) * 100
+  cagr_val = annualized_return(eq; periods_per_year=periods_per_year) * 100
 
-  sr = sharpe_ratio(eq)
-  so = sortino_ratio(eq)
-  cal = calmar_ratio(eq)
-  om = omega_ratio(eq)
+  sr = sharpe_ratio(eq; periods_per_year=periods_per_year)
+  so = sortino_ratio(eq; periods_per_year=periods_per_year)
+  cal = calmar_ratio(eq; periods_per_year=periods_per_year)
+  om = omega_ratio(eq; periods_per_year=periods_per_year)
   mdd = max_drawdown(eq) * 100
   ui = ulcer_index(eq)
   pf = profit_factor(eq)
@@ -355,7 +378,7 @@ function extended_summary(bt::Backtest; benchmark::Union{Vector{Float64},Nothing
 
   n_trades = length(bt.broker.history)
   n_bars = length(eq)
-  years = n_bars / 252
+  years = n_bars / periods_per_year
 
   _f(x) = isnan(x) || isinf(x) ? 0.0 : x
 
@@ -382,7 +405,7 @@ function extended_summary(bt::Backtest; benchmark::Union{Vector{Float64},Nothing
   @printf "  Prof.Fac. : %.3f\n" _f(pf)
   @printf "  Win Rate  : %.1f%%\n" _f(wr)
   if !isnothing(benchmark)
-    ir = information_ratio(eq, benchmark)
+    ir = information_ratio(eq, benchmark; periods_per_year=periods_per_year)
     @printf "  Info Ratio: %.3f\n" _f(ir)
   end
   println("="^50)

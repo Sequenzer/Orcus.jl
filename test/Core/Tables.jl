@@ -245,4 +245,31 @@
     @test length(wt) == 2
     @test Set(r.ticker for r in wt) == Set([A1.ticker, A2.ticker])
   end
+
+  @testset verbose=false "timestamp column with axis" begin
+    data = [1.0 2.0 3.0; 3.0 4.0 5.0; 0.5 1.5 2.5; 2.0 3.0 4.0]
+    A = Asset("TS", data, ["Open", "High", "Low", "Close"])
+    M = market([A])
+    B = Broker(M, 1000.0)
+    O = Order(Buy(A), 1)
+    place_order!(B, O)
+    process_order!(B, O)
+    for _ in 1:3
+      push!(B.equity_history, B.cash + total_value(B.portfolio))
+    end
+
+    # no axis: row types byte-identical to today
+    @test fieldnames(eltype(trades_table(B))) ==
+      (:bar, :ticker, :kind, :strike, :expiry, :volume, :price, :delta_cash)
+    @test fieldnames(eltype(equity_table(B))) == (:bar, :equity)
+
+    ax = DateTime.(Date(2021, 1, 1):Day(1):Date(2021, 1, 3))
+    set_axis!(M, ax)
+    @test all(r.timestamp == ax[r.bar] for r in trades_table(B))
+    @test all(r.timestamp == ax[r.bar] for r in equity_table(B))
+    @test all(r.timestamp == ax[r.bar] for r in cashflows_table(B))
+    @test all(r.timestamp == ax[r.bar] for r in turnover_table(B))
+    @test all(r.timestamp == ax[r.bar] for r in weights_table(B))
+    @test !isempty(trades_table(B)) && !isempty(weights_table(B))
+  end
 end

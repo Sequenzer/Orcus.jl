@@ -27,6 +27,11 @@ always a concrete `Matrix{Float64}`.
 NaN is used as the sentinel for missing/gap bars — no Union boxing. Indexing by an
 absent dataset name throws `KeyError`; name reads return concrete `Vector{Float64}`
 (window slice) or `Float64` (scalar).
+
+`currency` labels the asset's price units; `:base` means the broker's base currency.
+`fx` references the converting rate asset (wired by `set_fx!`); `fx_rate` is the current
+bar's conversion rate, refreshed by `advance_to!` so the accounting hot path is one
+branchless multiply (`1.0` for base-denominated assets — bit-identical single-currency).
 """
 mutable struct Asset
   ticker::String
@@ -36,10 +41,14 @@ mutable struct Asset
   indicator_functions::Vector{Union{Nothing,Tuple{IndicatorGenerator,String}}}
   visible::Int                      # bars currently revealed (cursor); 1:visible is "now"
   close_idx::Int                    # cached row index of "Close" (0 if absent) — hot path avoids the String hash
+  currency::Symbol
+  fx::Union{Nothing,Asset}
+  fx_rate::Float64
 
   function Asset(ticker::String,
     data::AbstractMatrix{Float64}=DataSeries(undef, 4, 0),
-    data_id::Vector{String}=fill("", size(data, 1)))
+    data_id::Vector{String}=fill("", size(data, 1));
+    currency::Symbol=:base)
     @assert size(data, 1) == length(data_id)
     this = new()
     this.ticker = ticker
@@ -49,6 +58,9 @@ mutable struct Asset
     this.indicator_functions = fill(nothing, length(data_id))
     this.visible = size(this.data, 2)
     this.close_idx = get(this._idx, "Close", 0)
+    this.currency = currency
+    this.fx = nothing
+    this.fx_rate = 1.0
     return this
   end
 end
@@ -111,9 +123,11 @@ function Base.getindex(A::Asset, key::String, key2::Int)
 end
 
 function Base.copy(A::Asset)
-  B = Asset(A.ticker, Matrix{Float64}(A.data), copy(A.data_id))
+  B = Asset(A.ticker, Matrix{Float64}(A.data), copy(A.data_id); currency=A.currency)
   B.indicator_functions = copy(A.indicator_functions)
   B.visible = A.visible
+  B.fx = A.fx     # still the source's fx asset; copy(::Market) rewires to its own copy
+  B.fx_rate = A.fx_rate
   return B
 end
 
@@ -224,6 +238,22 @@ O(1) for clean CSV data (no NaN at end), O(n_gaps) for sparse synthetic data.
 """
 @inline value(A::Asset) = _value_at(A, A.close_idx > 0 ? A.close_idx : A._idx["Close"])
 @inline value(A::Asset, data_key::String) = _value_at(A, A._idx[data_key])
+
+# Base-currency conversion at the accounting boundary. `fx_rate` is refreshed per bar by
+# `advance_to!` from the rate asset's visible window — no lookahead. Branchless: base assets
+# multiply by exactly 1.0, which is bit-identical in IEEE 754.
+@inline _fx_convert(A::Asset, x::Float64) = x * A.fx_rate
+
+# Current rate off a rate asset's visible window; `fallback` (the previous rate) carries
+# across NaN gaps and leading NaNs instead of erroring like `value`.
+@inline function _fx_rate_of(f::Asset, fallback::Float64)
+  row = f.close_idx > 0 ? f.close_idx : f._idx["Close"]
+  col = f.visible
+  @inbounds while col > 0 && isnan(f.data[row, col])
+    col -= 1
+  end
+  return col == 0 ? fallback : @inbounds f.data[row, col]
+end
 
 # Last non-NaN value in `row`, scanning back from the visible cursor (no lookahead).
 # The `col == 0` guard also covers the empty/all-NaN asset (no separate length assert needed).

@@ -67,7 +67,8 @@ Base.show(io::IO, P::Position) =
   end
 
 volume(P::Position) = P.net_qty
-@inline value(P::Position) = P.net_qty * value(P.derivative)
+@inline value(P::Position) =
+  _fx_convert(P.derivative.underlying, P.net_qty * value(P.derivative))
 u_value(P::Position) = P.net_qty * u_value(P.derivative)
 price(P::Position) = P.net_qty * P.avg_cost                 # cost basis
 abs_return(P::Position) = value(P) - price(P)                    # unrealized

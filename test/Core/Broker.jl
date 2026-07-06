@@ -328,4 +328,13 @@
     @test total_fees > 0
     @test isempty(B.portfolio)
   end
+
+  # Bit-identity anchor: exact values from a fixed backtest. Any change here means the
+  # accounting path changed — deliberate changes must update these numbers explicitly.
+  @testset "regression anchor" begin
+    T = Backtest(market([copy(AAPL)]), CrossOverStrategy, 10_000)
+    run_test(T)
+    @test last(T.broker.equity_history) == 2230.164489120245
+    @test length(T.broker.history) == 1620
+  end
 end

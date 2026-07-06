@@ -11,31 +11,46 @@ export Market,
   advance_to!,
   asset_names,
   returns_matrix,
-  trim_to_length
+  trim_to_length,
+  set_axis!,
+  has_axis,
+  timestamp,
+  bar_of,
+  set_fx!
 
 """
     Market
 
 A collection of Assets keyed by ticker. `_length` caches the maximum bar count
-so `length(M)` is O(1) instead of scanning all assets every call.
+so `length(M)` is O(1) instead of scanning all assets every call. `axis` is an
+optional shared time axis: `axis[j]` labels bar `j` of every asset; `nothing`
+means bars are abstract integer indices. The engine never reads it per bar.
 """
 mutable struct Market
   data::Dict{String,Asset}
   assets::Vector{Asset}        # same Assets as `data`, contiguous for hash-free hot-path iteration
   _length::Int
+  axis::Union{Nothing,Vector{DateTime}}
+  fx_registry::Dict{Symbol,String}   # currency → ticker of its rate asset (see set_fx!)
+  fx_wired::Vector{Tuple{Asset,Asset}}   # (asset, rate asset) pairs; empty = no per-bar fx work
 
   function Market(assets::Vector{Asset})
     this = new()
     this.data = Dict{String,Asset}()
     this.assets = Asset[]
     this._length = 0
+    this.axis = nothing
+    this.fx_registry = Dict{Symbol,String}()
+    this.fx_wired = Tuple{Asset,Asset}[]
     for a in assets
       add_asset!(this, a)
     end
     return this
   end
   Market(asset::Asset) = Market([asset])
-  Market() = new(Dict{String,Asset}(), Asset[], 0)
+  Market() = new(
+    Dict{String,Asset}(), Asset[], 0, nothing, Dict{Symbol,String}(), Tuple{Asset,Asset}[]
+  )
 end
 
 market(assets::Vector{Asset}) = Market(assets)
@@ -70,6 +85,27 @@ function add_asset!(M::Market, A::Asset)
   end
   M.data[A.ticker] = A
   M._length = max(M._length, length(A))
+  if haskey(M.fx_registry, A.currency) || A.ticker in values(M.fx_registry)
+    _rebuild_fx_wiring!(M)
+  end
+  return M
+end
+
+# Re-derive all fx wiring (asset `fx` refs, current rates, and the hot-path pair list) from
+# the registry. Cold path — called on any wiring or membership change, never per bar.
+function _rebuild_fx_wiring!(M::Market)
+  empty!(M.fx_wired)
+  for (ccy, tk) in M.fx_registry
+    fx = get(M.data, tk, nothing)
+    fx === nothing && continue
+    for a in M.assets
+      if a.currency === ccy
+        a.fx = fx
+        a.fx_rate = _fx_rate_of(fx, a.fx_rate)
+        push!(M.fx_wired, (a, fx))
+      end
+    end
+  end
   return M
 end
 
@@ -82,48 +118,35 @@ end
 Base.getindex(M::Market, key2::Int, ::Colon) = to_asset(M)[key2, :]
 Base.getindex(M::Market, key1::Int, key2::Int) = to_asset(M)[key1, key2]
 Base.getindex(M::Market, ::Colon, key2::Int) = to_asset(M)[:, key2]
-Base.copy(M::Market) = Market([copy(A) for A in values(M.data)])
+
+# Repoint every asset's cached fx reference at THIS market's rate assets. Required after
+# any operation that copies/rebuilds assets: a stale reference into the source market means
+# another thread's `advance_to!` moves the rate under us (see the batch isolation model).
+_rewire_fx!(M::Market) = _rebuild_fx_wiring!(M)
+
+function Base.copy(M::Market)
+  M2 = Market([copy(A) for A in values(M.data)])
+  M2.axis = M.axis === nothing ? nothing : copy(M.axis)
+  M2.fx_registry = copy(M.fx_registry)
+  return _rewire_fx!(M2)
+end
 
 function Base.getindex(M::Market, r::UnitRange{Int})
   newM = Market(Asset[])
   for (_, v) in M.data
     add_asset!(newM, v[r])
   end
-  return newM
+  M.axis === nothing || (newM.axis = M.axis[r])
+  newM.fx_registry = copy(M.fx_registry)
+  return _rewire_fx!(newM)
 end
 
 function shorten!(M::Market, U::UnitRange{Int})
   for (_, v) in M.data
     shorten!(v, U)
   end
+  M.axis === nothing || (M.axis = M.axis[U])
   M._length = length(U)
-end
-
-function cut_data_until(M::Market, n::Int)
-  newMarket = Market()
-  for (k, v) in M.data
-    newMarket.data[k] = cut_data_until(v, n)
-  end
-  return newMarket
-end
-
-function take_data!(source::Market, target::Market, date::DateTime)
-  for (k, v) in target.data
-    haskey(source.data, k) && take_data!(source.data[k], v, date)
-  end
-end
-function take_data!(source::Market, target::Market, n::Int)
-  for (k, v) in target.data
-    haskey(source.data, k) && take_data!(source.data[k], v, n)
-  end
-end
-
-function get_domain(M::Market)
-  domain = Vector{DateTime}()
-  for (_, v) in M.data
-    append!(domain, get_domain(v))
-  end
-  return sort(unique(domain))
 end
 
 function to_asset(M::Market)
@@ -159,6 +182,11 @@ cursor is what the backtest loop does once per bar (replaces the old SubArray vi
     max_len = max(max_len, a.visible)
   end
   M._length = max_len
+  # After every cursor has moved: refresh cached rates for fx-wired assets only.
+  # Single-currency markets pay one empty-vector length check.
+  @inbounds for (a, f) in M.fx_wired
+    a.fx_rate = _fx_rate_of(f, a.fx_rate)
+  end
   return M
 end
 
@@ -169,6 +197,59 @@ Back-compat shim for the old view-based API: advances `M` to reveal bars `1:last
 `visible` cursor (`M` already holds the full series). `N` is ignored. Prefer [`advance_to!`](@ref).
 """
 set_data_to!(M::Market, N::Market, u::UnitRange{Int}) = advance_to!(M, last(u))
+
+"""
+    set_axis!(M::Market, axis::Vector{DateTime}) -> Market
+
+Attach a shared time axis: `axis[j]` labels bar `j` of every asset. Must be sorted and
+match the full data width of the market's widest asset.
+"""
+function set_axis!(M::Market, axis::Vector{DateTime})
+  @assert issorted(axis) "axis must be sorted ascending"
+  width = maximum(a -> size(a.data, 2), M.assets; init=0)
+  @assert length(axis) == width "axis length $(length(axis)) != market data width $width"
+  M.axis = axis
+  return M
+end
+set_axis!(M::Market, axis::Vector{Date}) = set_axis!(M, DateTime.(axis))
+
+has_axis(M::Market) = M.axis !== nothing
+
+"""
+    set_fx!(M::Market, ccy::Symbol, fx_asset::Asset) -> Market
+
+Register `fx_asset` as the conversion rate for assets priced in `ccy`. Its Close must be
+**base-currency units per 1 unit of `ccy`**. The rate asset joins the market (so its bar
+cursor advances with everything else) and every current and future asset with
+`currency == ccy` converts through it.
+"""
+function set_fx!(M::Market, ccy::Symbol, fx_asset::Asset)
+  haskey(M.data, fx_asset.ticker) || add_asset!(M, fx_asset)
+  M.fx_registry[ccy] = fx_asset.ticker
+  return _rebuild_fx_wiring!(M)
+end
+
+"""
+    timestamp(M::Market, i::Int) -> DateTime
+
+Timestamp of bar `i`. Errors when the market has no axis.
+"""
+function timestamp(M::Market, i::Int)
+  M.axis === nothing && error("Market has no time axis; see set_axis!")
+  return M.axis[i]
+end
+
+"""
+    bar_of(M::Market, t) -> Int
+
+Index of the last bar at or before `t` (0 if `t` precedes the axis). Errors when the
+market has no axis.
+"""
+function bar_of(M::Market, t::DateTime)
+  M.axis === nothing && error("Market has no time axis; see set_axis!")
+  return searchsortedlast(M.axis, t)
+end
+bar_of(M::Market, t::Date) = bar_of(M, DateTime(t))
 
 """
     asset_names(M::Market) -> Vector{String}
@@ -222,5 +303,10 @@ function trim_to_length(M::Market, n::Int)
     start = max(1, len - n + 1)
     add_asset!(M2, a[start:len])
   end
-  return M2
+  if M.axis !== nothing
+    len = length(M.axis)
+    M2.axis = M.axis[max(1, len - n + 1):len]
+  end
+  M2.fx_registry = copy(M.fx_registry)
+  return _rewire_fx!(M2)
 end

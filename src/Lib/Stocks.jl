@@ -83,11 +83,28 @@ available_stocks() = sort([splitext(f)[1]
 """
     load_stocks(names::Vector{String}) -> Market
 
-Load multiple stocks by ticker name and return them as a Market.
+Load multiple stocks onto a shared bar grid — the sorted union of all trading dates —
+and attach it as the market's time axis. Dates missing for a ticker are NaN bars.
 All tickers must exist in the data directory (see `available_stocks()`).
 """
 function load_stocks(names::Vector{String})
-  market([load_stock(n) for n in names])
+  nts = [read_stock_csv(joinpath(_STOCKS_DATA_DIR, "$(n).csv")) for n in names]
+  grid = sort!(unique(reduce(vcat, [nt.date for nt in nts])))
+  pos = Dict(d => j for (j, d) in enumerate(grid))
+  M = market()
+  for (name, nt) in zip(names, nts)
+    cols = collect(filter(x -> x !== :date, propertynames(nt)))
+    data = fill(NaN, length(cols), length(grid))
+    for (r, c) in enumerate(cols)
+      vals = nt[c]
+      for (i, d) in enumerate(nt.date)
+        data[r, pos[d]] = vals[i]
+      end
+    end
+    add_asset!(M, Asset(name, data, uppercasefirst.(String.(cols))))
+  end
+  set_axis!(M, grid)
+  return M
 end
 
 # Shared, mutable sample fixtures. A backtest's `init` can mutate an Asset in place

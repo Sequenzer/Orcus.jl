@@ -10,6 +10,7 @@ using Tables
   include("Core/Utils.jl")
   include("Core/Derivative.jl")
   include("Core/Market.jl")
+  include("Core/Resample.jl")
   include("Core/Cost.jl")
   include("Core/Margin.jl")
   include("Core/Position.jl")
@@ -19,7 +20,10 @@ using Tables
   include("Core/Broker.jl")
   include("Core/Netting.jl")
   include("Core/Batch.jl")
+  include("Core/FX.jl")
   include("Core/Tables.jl")
+  include("Analytics/Stats.jl")
+  include("Lib/Stocks.jl")
   include("allocations.jl")
   #include("Strategy.jl")
 end

@@ -21,15 +21,31 @@ using RecipesBase
   1:length(series), series
 end
 
+# --- Market: one asset's series against the time axis ---------------------------------------
+@recipe function f(M::Market, ticker::String, data_key::String="Close")
+  A = M.data[ticker]
+  y = A.data[A._idx[data_key], :]
+  x = M.axis === nothing ? collect(1:length(y)) : M.axis[1:length(y)]
+  keep = .!isnan.(y)
+  seriestype --> :line
+  xguide --> (M.axis === nothing ? "Bar" : "Date")
+  yguide --> "Value"
+  title --> "$(ticker) $(data_key)"
+  label --> "$(ticker) $(data_key)"
+  x[keep], y[keep]
+end
+
 # --- Broker / Backtest: equity curve --------------------------------------------------------
 @recipe function f(B::Broker)
   eq = B.equity_history
+  ax = B.market.axis
+  x = ax === nothing ? collect(1:length(eq)) : ax[1:length(eq)]
   seriestype --> :line
-  xguide --> "Bar"
+  xguide --> (ax === nothing ? "Bar" : "Date")
   yguide --> "Equity"
   title --> "Equity curve"
   label --> "Equity"
-  1:length(eq), eq
+  x, eq
 end
 
 @recipe f(BT::Backtest) = BT.broker

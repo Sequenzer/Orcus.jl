@@ -203,6 +203,9 @@ function execute!(
     strict && error("Order not triggered")
     return B
   end
+  # base-book boundary: everything downstream (notional, fee, avg_cost, cash, delta_cash)
+  # is in the broker's base currency
+  fill_price = _fx_convert(O.derivative.underlying, fill_price)
 
   qty = remaining(O)
   key = instrument_key(O.derivative)
@@ -367,7 +370,7 @@ function close_position!(B::Broker, key::InstrumentKey, P::Position, date::Int)
   # reverse the whole position at the current per-unit mark; realizes P&L, nets to zero,
   # and (if margin-financed) repays the outstanding loan in full
   loan_before = P.loan
-  apply_trade!(P, -P.net_qty, value(P.derivative), fee)
+  apply_trade!(P, -P.net_qty, _fx_convert(P.derivative.underlying, value(P.derivative)), fee)
 
   Δ = notional - fee + (P.loan - loan_before)   # cash received (paid for shorts), less fees and loan repayment
   B.cash += Δ

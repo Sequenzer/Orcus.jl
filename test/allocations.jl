@@ -23,6 +23,23 @@ function _alloc_nomargin_broker(n_assets::Int)
   return M, B
 end
 
+function _alloc_fx_broker()
+  A = Asset("EA", _alloc_bars(200), ["Open", "High", "Low", "Close"]; currency=:EUR)
+  FX = Asset("EURUSD", repeat([2.0, 2.0, 2.0, 2.0], 1, 200), ["Open", "High", "Low", "Close"])
+  M = Market([A])
+  set_fx!(M, :EUR, FX)
+  advance_to!(M, 1)
+  B = Broker(M, 1_000_000.0)
+  sizehint!(B.equity_history, 256)
+  place_order!(B, Order(Buy(A), 10))
+  process_orders!(B)
+  advance_to!(M, 2);
+  process_all!(B)
+  advance_to!(M, 3);
+  process_all!(B)
+  return M, B
+end
+
 function _alloc_margin_broker()
   A = Asset("ML", _alloc_bars(200), ["Open", "High", "Low", "Close"])
   M = Market([A])
@@ -50,6 +67,14 @@ end
       @test (@allocated total_value(B.portfolio)) == 0
       @test (@allocated total_loan(B.portfolio)) == 0
     end
+  end
+
+  @testset "0 B/bar — fx-wired asset" begin
+    M, B = _alloc_fx_broker()
+    advance_to!(M, 4)
+    @test (@allocated process_all!(B)) == 0
+    @test (@allocated total_value(B.portfolio)) == 0
+    @test length(B.portfolio) == 1
   end
 
   @testset "0 B/bar — RegTMargin with open positions" begin
@@ -89,6 +114,11 @@ end
   @test @inferred(Orcus.total_abs_value(pf)) isa Float64
   @test @inferred(Orcus.accrue_fees!(pf, 0.0)) isa Float64
   @test @inferred(value(Position(Buy(A)))) isa Float64
+  let (Mfx, Bfx) = _alloc_fx_broker()
+    Pfx = first(values(Bfx.portfolio))
+    @test @inferred(value(Pfx)) isa Float64
+    @test @inferred(total_value(Bfx.portfolio)) isa Float64
+  end
   @test @inferred(Orcus.transaction_fee(NoCost(), 1.0)) isa Float64
   @test @inferred(A[1, 1]) isa Float64
   @test @inferred(advance_to!(M, 4)) isa Market

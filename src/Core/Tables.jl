@@ -2,6 +2,9 @@
 # data the hot loop already writes for free (`B.history`, `B.equity_history`, `B.market`'s
 # retained price matrices). No per-bar hot-path cost, no caching — add new collectors the
 # same way rather than tracking a new series eagerly in `process_all!`.
+#
+# When the market has a time axis, every bar-keyed table gains a trailing
+# `timestamp::DateTime` column; without one, row types are unchanged.
 
 export
   trades_table,
@@ -11,14 +14,33 @@ export
   turnover_table,
   weights_table
 
+_with_timestamps(rows, axis::Union{Nothing,Vector{DateTime}}) =
+  axis === nothing ? rows : [merge(r, (timestamp=axis[r.bar],)) for r in rows]
+
+# Historical base-conversion rate for A at `bar`: last non-NaN Close of A's fx asset at or
+# before that bar (1.0 when the asset is base-denominated). Cold path only.
+function _fx_rate_at(A::Asset, bar::Int)
+  f = A.fx
+  f === nothing && return 1.0
+  col = min(bar, size(f.data, 2))
+  row = f.close_idx > 0 ? f.close_idx : f._idx["Close"]
+  while col > 0 && isnan(f.data[row, col])
+    col -= 1
+  end
+  return col == 0 ? NaN : f.data[row, col]
+end
+
 const TradeRow = @NamedTuple{bar::Int, ticker::String, kind::Symbol,
   strike::Union{Float64,Nothing}, expiry::Union{Int,Nothing},
   volume::Float64, price::Float64, delta_cash::Float64}
 
+# `price(T)` reprices in the asset's local currency; the table reports base currency
+# (consistent with `delta_cash`) using the rate at the trade's bar.
 function _trade_row(T::Trade)
   key = instrument_key(T.derivative)
+  rate = _fx_rate_at(T.derivative.underlying, T.date)
   return TradeRow((T.date, key.ticker, key.kind, key.strike, key.expiry,
-    T.volume, Float64(price(T)), T.delta_cash))
+    T.volume, Float64(price(T)) * rate, T.delta_cash))
 end
 
 """
@@ -26,7 +48,8 @@ end
 
 Every fill in `B.history` as a Tables.jl row table.
 """
-trades_table(B::Broker) = TradeRow[_trade_row(T) for T in B.history]
+trades_table(B::Broker) =
+  _with_timestamps(TradeRow[_trade_row(T) for T in B.history], B.market.axis)
 
 const PositionRow = @NamedTuple{ticker::String, kind::Symbol,
   strike::Union{Float64,Nothing}, expiry::Union{Int,Nothing},
@@ -50,8 +73,9 @@ const EquityRow = @NamedTuple{bar::Int, equity::Float64}
 
 The equity curve (`B.equity_history`) as a Tables.jl row table.
 """
-equity_table(B::Broker) =
-  EquityRow[(bar=i, equity=e) for (i, e) in enumerate(B.equity_history)]
+equity_table(B::Broker) = _with_timestamps(
+  EquityRow[(bar=i, equity=e) for (i, e) in enumerate(B.equity_history)], B.market.axis
+)
 
 const CashflowRow = @NamedTuple{bar::Int, cash::Float64}
 
@@ -60,8 +84,9 @@ const CashflowRow = @NamedTuple{bar::Int, cash::Float64}
 
 The cash balance over time (`cash_history`) as a Tables.jl row table.
 """
-cashflows_table(B::Broker) =
-  CashflowRow[(bar=d, cash=Float64(c)) for (d, c) in cash_history(B)]
+cashflows_table(B::Broker) = _with_timestamps(
+  CashflowRow[(bar=d, cash=Float64(c)) for (d, c) in cash_history(B)], B.market.axis
+)
 
 const TurnoverRow = @NamedTuple{bar::Int, traded_notional::Float64, turnover::Float64}
 
@@ -89,7 +114,7 @@ function turnover_table(B::Broker)
     eq = B.equity_history[bar]
     push!(out, TurnoverRow((bar, notional, eq == 0.0 ? 0.0 : notional / eq)))
   end
-  return out
+  return _with_timestamps(out, B.market.axis)
 end
 
 const WeightRow = @NamedTuple{
@@ -137,10 +162,12 @@ function weights_table(B::Broker)
         last_price[key.ticker] = p
       end
       isnan(p) && continue            # no valid mark observed yet for this ticker
-      val = q * payoff(deriv[key], p)
+      rate = _fx_rate_at(A, bar)      # base-currency mark, consistent with equity
+      isnan(rate) && continue
+      val = q * payoff(deriv[key], p) * rate
       w = eq == 0.0 ? 0.0 : val / eq
       push!(out, WeightRow((bar, key.ticker, key.kind, val, w)))
     end
   end
-  return out
+  return _with_timestamps(out, B.market.axis)
 end
