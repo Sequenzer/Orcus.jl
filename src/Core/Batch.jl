@@ -1,6 +1,4 @@
 
-export batch_backtest
-
 """
     batch_backtest(market, strategy, cash, grid; threaded=true, cost_model=NoCost(), progress=false)
 

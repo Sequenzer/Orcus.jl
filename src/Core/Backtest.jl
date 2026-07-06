@@ -1,8 +1,4 @@
 
-export Backtest,
-  run_test,
-  process_day!
-
 """
 
     Backtest(market::Market, strategy::Strategy, cash::Real=1000)

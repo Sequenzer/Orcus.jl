@@ -1,10 +1,4 @@
 
-export Strategy,
-  next,
-  init,
-  @generate_strategy,
-  @strategy_methods
-
 abstract type Strategy end
 
 next(s::Strategy) = error("No next method defined for Strategy \"$(typeof(s))\"")

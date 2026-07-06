@@ -1,26 +1,4 @@
 
-export
-  Broker,
-  broker,
-  place_order!,
-  execute!,
-  process_order!,
-  process_last_order!,
-  process_orders!,
-  resolve_portfolio!,
-  process_all!,
-  request_to_close_all!,
-  request_to_close!,
-  has_position,
-  position_direction,
-  unrealized_pnl,
-  realized_pnl,
-  cash_history,
-  to_index,
-  status,
-  accrue_borrow_fee!,
-  check_margin!
-
 """
 
     Broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
@@ -54,7 +32,6 @@ mutable struct Broker
   rejected::Vector{Tuple{Order,String,Int}}      # (order, reason, bar)
   margin_calls::Vector{Int}                      # bar indices where a maintenance breach forced a liquidation
   equity_history::Vector{Float64}
-  _close_keys::Vector{InstrumentKey}             # reusable scratch for resolve_portfolio!
   _pending_close::Bool                           # set when a close is requested; lets resolve_portfolio! skip the per-bar scan
   function Broker(
     market::Market, cash::Real; cost_model::CostModel=NoCost(),
@@ -71,7 +48,6 @@ mutable struct Broker
     this.rejected = Tuple{Order,String,Int}[]
     this.margin_calls = Int[]
     this.equity_history = Float64[]
-    this._close_keys = InstrumentKey[]
     this._pending_close = false
     return this
   end
@@ -276,7 +252,7 @@ end
     process_order!(B::Broker, O::Order, check_books::Bool=true)
 
 Strictly process a single order: remove it from the orderbook (when `check_books`) and fill
-it via [`execute!`](@ref) with `strict=true`, so insufficient funds raise instead of being
+it via `execute!` with `strict=true`, so insufficient funds raise instead of being
 recorded as a rejection.
 
 ```jldoctest
@@ -306,7 +282,7 @@ end
 """
     process_last_order!(B::Broker)
 
-Pop and fill the most recently placed order via [`execute!`](@ref) (`strict=true`).
+Pop and fill the most recently placed order via `execute!` (`strict=true`).
 """
 function process_last_order!(B::Broker)
   isempty(B.orders) && error("No Orders to process")
@@ -344,17 +320,27 @@ function resolve_portfolio!(B::Broker)
   # Fast path: nothing has been flagged since the last resolve → skip the per-bar group scan
   # (and its dynamic dispatch) entirely. Every flag setter sets `_pending_close`.
   B._pending_close || return B
-  # Scan for flagged positions without per-position boxing (barrier per type-group); only
-  # when something is flagged do we collect its keys into a reused buffer so we can mutate
-  # the portfolio safely while closing.
-  collect_flagged!(B._close_keys, B.portfolio)
   B._pending_close = false
-  isempty(B._close_keys) && return B
   today = length(B)
-  for key in B._close_keys
-    close_position!(B, key, B.portfolio[key], today)
+  pf = B.portfolio
+  _close_flagged!(B, pf.buy, today)
+  _close_flagged!(B, pf.sell, today)
+  for g in pf.others
+    _close_flagged!(B, g, today)   # barrier: closes run with a concrete Position{D}
   end
   return B
+end
+
+# Backwards walk is swap-pop-safe: closing slot i moves the (already visited) last element
+# into i, so no live position is skipped.
+function _close_flagged!(B::Broker, g::Group{D}, today::Int) where {D}
+  i = length(g.positions)
+  @inbounds while i >= 1
+    P = g.positions[i]
+    P.requestToClose && close_position!(B, g.keys[i], P, today)
+    i -= 1
+  end
+  return nothing
 end
 
 """
@@ -363,14 +349,17 @@ end
 Liquidate the whole of position `P` at its current market value. Internal close-out helper
 used by [`resolve_portfolio!`](@ref).
 """
-function close_position!(B::Broker, key::InstrumentKey, P::Position, date::Int)
-  notional = value(P)                                   # signed market value liquidated
+function close_position!(
+  B::Broker, key::InstrumentKey, P::Position{D}, date::Int
+) where {D<:Derivative}
+  vder = value(P.derivative)                            # per-unit mark, priced once
+  notional = _fx_convert(P.derivative.underlying, P.net_qty * vder)   # signed market value liquidated
   fee = transaction_fee(B.cost_model, notional)
 
   # reverse the whole position at the current per-unit mark; realizes P&L, nets to zero,
   # and (if margin-financed) repays the outstanding loan in full
   loan_before = P.loan
-  apply_trade!(P, -P.net_qty, _fx_convert(P.derivative.underlying, value(P.derivative)), fee)
+  apply_trade!(P, -P.net_qty, _fx_convert(P.derivative.underlying, vder), fee)
 
   Δ = notional - fee + (P.loan - loan_before)   # cash received (paid for shorts), less fees and loan repayment
   B.cash += Δ
@@ -380,14 +369,14 @@ function close_position!(B::Broker, key::InstrumentKey, P::Position, date::Int)
   T = Trade(P.derivative, -P.net_qty, date, Δ)
   push!(B.history, T)
 
-  delete!(B.portfolio, key)
+  drop!(B.portfolio, key, D)
   return B
 end
 
 """
     process_orders!(B::Broker)
 
-Process the whole orderbook in **FIFO** order via [`execute!`](@ref). Orders that fully fill
+Process the whole orderbook in **FIFO** order via `execute!`. Orders that fully fill
 (the whole book, for plain market orders) or are rejected for insufficient funds are removed;
 resting limit/stop orders that don't trigger on this bar, and partially-filled orders with
 quantity still outstanding, stay queued for a future bar.

@@ -1,6 +1,3 @@
-export
-  Trade
-
 """
     
     Trade(O::Order)

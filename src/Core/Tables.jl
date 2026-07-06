@@ -6,14 +6,6 @@
 # When the market has a time axis, every bar-keyed table gains a trailing
 # `timestamp::DateTime` column; without one, row types are unchanged.
 
-export
-  trades_table,
-  positions_table,
-  equity_table,
-  cashflows_table,
-  turnover_table,
-  weights_table
-
 _with_timestamps(rows, axis::Union{Nothing,Vector{DateTime}}) =
   axis === nothing ? rows : [merge(r, (timestamp=axis[r.bar],)) for r in rows]
 

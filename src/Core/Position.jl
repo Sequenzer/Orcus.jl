@@ -1,13 +1,3 @@
-export
-  Position,
-  volume,
-  value,
-  u_value,
-  apply_trade!,
-  is_closed,
-  realized_pnl,
-  request_to_close
-
 """
     Position
 

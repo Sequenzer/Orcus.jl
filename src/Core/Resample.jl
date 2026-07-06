@@ -1,6 +1,4 @@
 
-export resample
-
 _resample_stops(n::Int, k::Int) = n == 0 ? Int[] : collect(k:k:n) ∪ [n]
 
 function _period_stops(axis::Vector{DateTime}, p::Dates.Period)

@@ -1,8 +1,6 @@
 # Orders & accounting
 
-The order/fill/accounting path: a single deterministic FIFO fill in `execute!`, netted
-`Position`s keyed by `(ticker, type, strike, expiry)`, and pluggable `CostModel`/`MarginModel`
-applied per fill.
+<!-- TODO: explain order/fill/accounting path, Position netting, CostModel/MarginModel -->
 
 ```@autodocs
 Modules = [Orcus]

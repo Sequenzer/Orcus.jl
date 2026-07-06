@@ -1,7 +1,5 @@
 #Binding for the stocks in ./data/(name).csv
 
-export load_stock, load_stocks, available_stocks, AAPL, GOOG
-
 const _STOCKS_DATA_DIR = joinpath(@__DIR__, "data")
 
 """

@@ -1,7 +1,6 @@
 # Derivatives
 
-Tradeable instruments — `Buy`/`Sell` for the underlying, plus `LongCall`/`LongPut`/
-`ShortCall`/`ShortPut` — dispatched through a common `payoff` interface.
+<!-- TODO: explain the Derivative/payoff dispatch interface and built-in instrument types -->
 
 ```@autodocs
 Modules = [Orcus]

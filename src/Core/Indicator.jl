@@ -1,8 +1,4 @@
 
-export IndicatorGenerator,
-  indicator_generator,
-  simple_average
-
 """
     IndicatorGenerator(f::Function,window::Int)
 

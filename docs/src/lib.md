@@ -1,6 +1,6 @@
 # Lib
 
-Sample stock data loaders and an example SMA-crossover strategy.
+<!-- TODO: explain sample stock data loaders and the example strategies -->
 
 ```@autodocs
 Modules = [Orcus]

@@ -4,8 +4,7 @@
 [![codecov](https://codecov.io/gh/Sequenzer/Orcus.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/Sequenzer/Orcus.jl)
 [![docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://sequenzer.github.io/Orcus.jl/dev)
 
-A quantitative backtesting engine for Julia. Write a strategy as two functions, run it
-bar-by-bar over historical data, and inspect the equity curve, trades, and portfolio.
+<!-- TODO: one-paragraph description of what Orcus is/does and who it's for -->
 
 ## Install
 
@@ -58,17 +57,9 @@ plot(bt)
 
 ## What's included
 
-- **Core** — `Asset`, `Market`, `Broker`, `Order`, `Trade`, `Position`, the `Strategy`
-  abstraction (`@generate_strategy`), the `Backtest` runner, and derivatives
-  (`Buy`/`Sell`/`LongCall`/`LongPut`/`ShortCall`/`ShortPut`).
-- **Lib** — sample stock data loaders (`load_stock`, `load_stocks`, `available_stocks`) and
-  example strategies.
-- **Analytics** — rolling PCA factor models, rolling-window statistics, technical indicators,
-  and option-pricing helpers.
+<!-- TODO: bullet list of Core/Lib/Analytics modules and what each covers -->
 
-See `examples/` for runnable strategies: `buy_and_hold.jl`, `sma_crossover.jl`,
-`momentum_vol.jl`, `option_wheel.jl`, and the PCA strategies (`pca_residual.jl`,
-`pca_multi.jl`, `pca_zscore.jl`).
+<!-- TODO: pointer to examples/ describing what each runnable strategy demonstrates -->
 
 ## Tests
 

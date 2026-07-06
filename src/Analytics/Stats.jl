@@ -1,24 +1,4 @@
 
-export sharpe_ratio,
-  max_drawdown,
-  backtest_summary,
-  cross_section_rank,
-  cross_section_zscore,
-  sortino_ratio,
-  calmar_ratio,
-  profit_factor,
-  win_rate_bars,
-  extended_summary,
-  compare_backtests,
-  annualized_return,
-  value_at_risk,
-  cvar,
-  omega_ratio,
-  ulcer_index,
-  information_ratio,
-  bah_equity,
-  infer_periods_per_year
-
 """
     sharpe_ratio(equity; rf=0.0, periods_per_year=252) -> Float64
 

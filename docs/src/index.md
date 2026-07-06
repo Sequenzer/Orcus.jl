@@ -1,8 +1,6 @@
 # Orcus.jl
 
-A quantitative backtesting engine for Julia, focused on research and signal authoring. Write
-a strategy as two functions, run it bar-by-bar over historical data, and inspect the equity
-curve, trades, and portfolio.
+<!-- TODO: one-paragraph description of what Orcus is/does and who it's for -->
 
 ```@contents
 Pages = ["core_data.md", "core_accounting.md", "core_derivatives.md", "core_strategy.md", "core_backtest.md", "lib.md", "analytics.md"]
@@ -51,8 +49,5 @@ plot(bt)
 
 ## Layout
 
-- **Core** — [Market data](@ref), [Orders & accounting](@ref), [Derivatives](@ref),
-  [Strategy authoring](@ref), [Backtesting](@ref).
-- **[Lib](@ref)** — sample stock data loaders and example strategies.
-- **[Analytics](@ref)** — rolling PCA factor models, rolling-window statistics, technical
-  indicators, and option-pricing helpers.
+<!-- TODO: short description of Core/[Market data](@ref)/[Orders & accounting](@ref)/
+[Derivatives](@ref)/[Strategy authoring](@ref)/[Backtesting](@ref)/[Lib](@ref)/[Analytics](@ref) -->

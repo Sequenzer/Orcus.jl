@@ -1,7 +1,3 @@
-
-export crossover_init,
-  crossover_next
-
 """
     crossover_next(s::Strategy)
 

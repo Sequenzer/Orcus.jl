@@ -1,19 +1,6 @@
 
 import Base: getindex, setindex!, length, show, size, names
 
-export Asset,
-  asset,
-  height,
-  data,
-  n_datasets,
-  rand_ohlc,
-  calculate_indicator,
-  apply_indicator,
-  value,
-  add_datapoint!,
-  rowindex,
-  shorten!
-
 """
     Asset
 

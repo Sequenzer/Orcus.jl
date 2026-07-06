@@ -1,23 +1,4 @@
 
-export Market,
-  market,
-  add_asset!,
-  add_assets!,
-  assets,
-  to_asset,
-  to_market,
-  names,
-  set_data_to!,
-  advance_to!,
-  asset_names,
-  returns_matrix,
-  trim_to_length,
-  set_axis!,
-  has_axis,
-  timestamp,
-  bar_of,
-  set_fx!
-
 """
     Market
 

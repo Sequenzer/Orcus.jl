@@ -1,6 +1,4 @@
 
-export rolling_mean, rolling_std, rolling_zscore
-
 """
     rolling_mean(v, w) -> Vector{Float64}
 

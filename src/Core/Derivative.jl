@@ -1,24 +1,4 @@
 
-export
-  Derivative,
-  @generate_derivative,
-  Buy,
-  Sell,
-  LongCall,
-  LongPut,
-  ShortCall,
-  ShortPut,
-  print_props,
-  u_value,
-  value,
-  name,
-  abs_return,
-  pct_return,
-  log_return,
-  payoff,
-  instrument_key,
-  InstrumentKey
-
 """
     Derivative
 
@@ -89,7 +69,7 @@ Print all the current properties of the input derivative.
 Random.seed!(456);
 A = asset();
 B = Buy(A,10);
-print_props(B)
+Orcus.print_props(B)
 # output
 
 ========================================

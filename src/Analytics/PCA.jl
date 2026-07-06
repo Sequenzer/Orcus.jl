@@ -1,12 +1,4 @@
 
-export RollingPCA,
-  rolling_pca,
-  fit!,
-  project,
-  explained_variance,
-  residual_corr,
-  plot_residual_corr
-
 """
     RollingPCA(window, n_factors)
 

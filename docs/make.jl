@@ -7,7 +7,7 @@ Pkg.instantiate()
 
 using Documenter, Orcus
 
-DocMeta.setdocmeta!(Orcus, :DocTestSetup, :(using Orcus); recursive=true)
+DocMeta.setdocmeta!(Orcus, :DocTestSetup, :(using Orcus, Random); recursive=true)
 
 makedocs(
   sitename="Orcus.jl",

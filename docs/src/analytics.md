@@ -1,7 +1,6 @@
 # Analytics
 
-Rolling PCA factor models, rolling-window statistics, backtest performance metrics,
-technical indicators, and option-pricing helpers.
+<!-- TODO: explain PCA factor models, rolling stats, performance metrics, indicators, options -->
 
 ```@autodocs
 Modules = [Orcus]

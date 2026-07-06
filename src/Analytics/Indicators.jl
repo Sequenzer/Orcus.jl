@@ -1,6 +1,4 @@
 
-export ema, rsi, atr
-
 """
     ema(v, w) -> Vector{Float64}
 

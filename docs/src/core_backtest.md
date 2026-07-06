@@ -1,8 +1,6 @@
 # Backtesting
 
-`Backtest`/`run_test` drive the bar-by-bar loop; `batch_backtest` runs a threaded parameter
-sweep (see the module docs on per-job market isolation); the `Tables.jl` collectors derive
-Tables.jl row tables lazily from backtest output.
+<!-- TODO: explain Backtest/run_test loop, batch_backtest sweeps, Tables.jl collectors -->
 
 ```@autodocs
 Modules = [Orcus]

@@ -1,10 +1,3 @@
-export random_value,
-  DataSeries,
-  DataPoint,
-  data_series,
-  data_point,
-  add!
-
 IncompleteVector = AbstractVector{<:Union{<:Real,Missing}}
 
 function random_value(x::Real, n::Int, f::Function)
