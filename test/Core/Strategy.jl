@@ -31,4 +31,27 @@
     s = BuyStrategy(Broker(M, 1000))
     @test isa(s, Strategy)
   end
+  @testset verbose=false "redefinition" begin
+    Random.seed!(1234)
+    x = Asset("AAPL")
+    M = Market([x])
+
+    global redef_init_v1(_::Strategy) = 1
+    global redef_next_v1(_::Strategy) = 10
+    @generate_strategy RedefStrategy redef_next_v1 redef_init_v1
+
+    global redef_init_v2(_::Strategy) = 2
+    global redef_next_v2(_::Strategy) = 20
+    @generate_strategy RedefStrategy redef_next_v2 redef_init_v2
+
+    s = RedefStrategy(Broker(M, 1000))
+    @test isa(s, Strategy)
+    @test init(s) == 2
+    @test next(s) == 20
+    @test string(nameof(typeof(s))) == "RedefStrategy"
+    @test string(typeof(s)) == "RedefStrategy"
+
+    global RedefCollisionTarget = 5
+    @test_throws LoadError eval(:(@generate_strategy RedefCollisionTarget redef_next_v1 redef_init_v1))
+  end
 end

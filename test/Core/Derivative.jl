@@ -18,5 +18,17 @@
       x = asset()
       @test name(NewBuy(x, 10)) == "NewBuy"
     end
+    @testset "generate_derivative redefinition" begin
+      @generate_derivative RedefDeriv x->x (val, premium)->val+premium
+      @generate_derivative RedefDeriv x->2x (val, premium)->val+premium
+
+      x2 = asset()
+      d = RedefDeriv(x2, 10)
+      @test name(d) == "RedefDeriv"
+      @test payoff(d, 5) == 10
+
+      global RedefDerivCollision = 5
+      @test_throws LoadError eval(:(@generate_derivative RedefDerivCollision x->x (val, premium)->val+premium))
+    end
   end
 end

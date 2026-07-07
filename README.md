@@ -31,13 +31,13 @@ using Orcus
 M = market([GOOG])          # built-in sample data; see available_stocks()
 
 function cross_init(s::Strategy)
-  a = s.market.data["GOOG"]  # Access the data for GOOG
+  a = s.market["GOOG"]
   apply_indicator(IndicatorGenerator(simple_average, 10), a, "Close", "SMA10")
   apply_indicator(IndicatorGenerator(simple_average, 20), a, "Close", "SMA20")
 end
 
 function cross_next(s::Strategy)
-  a = s.market.data["GOOG"]
+  a = s.market["GOOG"]
   n = length(a)
   n < 2 && return
   crossed_up = a["SMA10", n] > a["SMA20", n] && a["SMA10", n-1] <= a["SMA20", n-1]
