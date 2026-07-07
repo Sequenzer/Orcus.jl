@@ -13,16 +13,18 @@ function _normcdf(x::Float64)::Float64
 end
 
 """
-    bsm_call(S, K, T, r, sigma) -> Float64
+    bsm_call(S::Float64, K::Float64, T::Float64, r::Float64, sigma::Float64)
 
-Black-Scholes-Merton European call price.
-- `S`     current underlying price
-- `K`     strike
-- `T`     time to expiry in years (e.g., 21/252 for one month)
-- `r`     risk-free rate (annualized, e.g., 0.04)
-- `sigma` annualized volatility (e.g., 0.20)
-
+Black-Scholes-Merton European call price for underlying price `S`, strike `K`, time to
+expiry `T` in years, annualized risk-free rate `r`, and annualized volatility `sigma`.
 Returns intrinsic value `max(S-K, 0)` when `T ≤ 0`.
+
+```jldoctest
+round(bsm_call(100.0, 100.0, 0.25, 0.04, 0.2); digits=4)
+# output
+
+4.4852
+```
 """
 function bsm_call(S::Float64, K::Float64, T::Float64,
   r::Float64, sigma::Float64)::Float64
@@ -33,9 +35,16 @@ function bsm_call(S::Float64, K::Float64, T::Float64,
 end
 
 """
-    bsm_put(S, K, T, r, sigma) -> Float64
+    bsm_put(S::Float64, K::Float64, T::Float64, r::Float64, sigma::Float64)
 
 Black-Scholes-Merton European put price (via put-call parity).
+
+```jldoctest
+round(bsm_put(100.0, 100.0, 0.25, 0.04, 0.2); digits=4)
+# output
+
+3.4902
+```
 """
 function bsm_put(S::Float64, K::Float64, T::Float64,
   r::Float64, sigma::Float64)::Float64
@@ -46,11 +55,17 @@ function bsm_put(S::Float64, K::Float64, T::Float64,
 end
 
 """
-    bsm_delta(S, K, T, r, sigma; type=:call) -> Float64
+    bsm_delta(S::Float64, K::Float64, T::Float64, r::Float64, sigma::Float64; type::Symbol=:call)
 
-Black-Scholes-Merton option delta.
-`type` is `:call` (default) or `:put`.
+Black-Scholes-Merton option delta. `type` is `:call` (default) or `:put`.
 Call delta ∈ (0, 1); put delta ∈ (-1, 0).
+
+```jldoctest
+round(bsm_delta(100.0, 100.0, 0.25, 0.04, 0.2); digits=4)
+# output
+
+0.5596
+```
 """
 function bsm_delta(S::Float64, K::Float64, T::Float64,
   r::Float64, sigma::Float64;
@@ -63,10 +78,18 @@ function bsm_delta(S::Float64, K::Float64, T::Float64,
 end
 
 """
-    realized_vol(prices, window=20) -> Float64
+    realized_vol(prices::Vector{Float64}, window::Int=20)
 
 Annualized realized volatility estimated from the last `window` log-returns
 of a price series. Returns `NaN` if insufficient data.
+
+```jldoctest
+prices=[100.0,101.0,99.0,102.0,103.0,101.0,104.0,105.0,103.0,106.0,107.0,105.0,108.0,109.0,107.0,110.0,111.0,109.0,112.0,113.0,111.0];
+round(realized_vol(prices, 20); digits=4)
+# output
+
+0.3143
+```
 """
 function realized_vol(prices::Vector{Float64}, window::Int=20)::Float64
   clean = filter(x -> !isnan(x) && x > 0, prices)

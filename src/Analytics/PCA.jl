@@ -1,14 +1,20 @@
 
 """
-    RollingPCA(window, n_factors)
+    RollingPCA(window::Int, n_factors::Int, eigvecs::Matrix{Float64}, eigvals::Vector{Float64}, total_var::Float64, fitted::Bool)
 
 Rolling PCA factor model. Maintains top `n_factors` eigenvectors of the
-return covariance matrix, estimated over a sliding `window` of bars.
-
-Fields set after `fit!`:
+return covariance matrix, estimated over a sliding `window` of bars. Use [`rolling_pca`](@ref)
+to build an unfitted one. Fields set after `fit!`:
 - `eigvecs` — [N × K] matrix, columns are factor loadings (descending variance)
 - `eigvals` — K eigenvalues (descending)
 - `fitted`  — false until first `fit!` call
+
+```jldoctest
+rolling_pca(20, 2)
+# output
+
+RollingPCA(window=20, n_factors=2, fitted=false)
+```
 """
 mutable struct RollingPCA
   window::Int
@@ -19,6 +25,18 @@ mutable struct RollingPCA
   fitted::Bool
 end
 
+"""
+    rolling_pca(window::Int, n_factors::Int)
+
+Build an unfitted `RollingPCA` — call [`fit!`](@ref) before using it.
+
+```jldoctest
+rolling_pca(20, 2)
+# output
+
+RollingPCA(window=20, n_factors=2, fitted=false)
+```
+"""
 rolling_pca(window::Int, n_factors::Int) =
   RollingPCA(window, n_factors, Matrix{Float64}(undef, 0, 0), Float64[], 0.0, false)
 
@@ -28,8 +46,18 @@ Base.show(io::IO, pca::RollingPCA) = print(io,
 """
     fit!(pca::RollingPCA, R::Matrix{Float64})
 
-Fit PCA on return matrix `R` of shape `[N × T]`.  Stores the top K eigenvectors
-(by variance explained) and their eigenvalues.  Requires T ≥ 2 and N ≥ n_factors.
+Fit PCA on return matrix `R` of shape `[N × T]`, storing the top K eigenvectors (by variance
+explained) and their eigenvalues. Requires T ≥ 2 and N ≥ n_factors.
+
+```jldoctest
+pca=rolling_pca(20, 2);
+R=[1.0 2.0 3.0 4.0; 2.0 4.0 6.0 8.0; 1.0 1.5 1.2 1.8];
+fit!(pca, R);
+pca.fitted
+# output
+
+true
+```
 """
 function fit!(pca::RollingPCA, R::Matrix{Float64})
   N, T = size(R)
@@ -48,12 +76,21 @@ function fit!(pca::RollingPCA, R::Matrix{Float64})
 end
 
 """
-    project(pca::RollingPCA, r::Vector{Float64}) -> (factors, residuals)
+    project(pca::RollingPCA, r::Vector{Float64})
 
-Project a single bar's return vector `r` [N] through the fitted PCA.
-Returns:
-- `factors`   — [K] factor returns (projection onto eigenvectors)
-- `residuals` — [N] idiosyncratic residual after removing factor component
+Project a single bar's return vector `r` [N] through the fitted PCA, returning `(factors,
+residuals)` — [K] factor returns and [N] idiosyncratic residual.
+
+```jldoctest
+pca=rolling_pca(20, 2);
+R=[1.0 2.0 3.0 4.0; 2.0 4.0 6.0 8.0; 1.0 1.5 1.2 1.8];
+fit!(pca, R);
+factors, residuals = project(pca, R[:,1]);
+size(factors), size(residuals)
+# output
+
+((2,), (3,))
+```
 """
 function project(pca::RollingPCA, r::Vector{Float64})
   pca.fitted || error("RollingPCA not fitted — call fit! first")
@@ -63,10 +100,21 @@ function project(pca::RollingPCA, r::Vector{Float64})
 end
 
 """
-    project(pca::RollingPCA, R::Matrix{Float64}) -> (F, E)
+    project(pca::RollingPCA, R::Matrix{Float64})
 
-Batch projection of return matrix `R` [N × T].
-Returns factor matrix `F` [K × T] and residual matrix `E` [N × T].
+Batch projection of return matrix `R` [N × T], returning factor matrix `F` [K × T] and
+residual matrix `E` [N × T].
+
+```jldoctest
+pca=rolling_pca(20, 2);
+R=[1.0 2.0 3.0 4.0; 2.0 4.0 6.0 8.0; 1.0 1.5 1.2 1.8];
+fit!(pca, R);
+F, E = project(pca, R);
+size(F), size(E)
+# output
+
+((2, 4), (3, 4))
+```
 """
 function project(pca::RollingPCA, R::Matrix{Float64})
   pca.fitted || error("RollingPCA not fitted — call fit! first")
@@ -76,10 +124,21 @@ function project(pca::RollingPCA, R::Matrix{Float64})
 end
 
 """
-    explained_variance(pca::RollingPCA) -> Vector{Float64}
+    explained_variance(pca::RollingPCA)
 
-Fraction of total variance explained by each factor (sums to ≤ 1).
-Length equals n_factors.
+Fraction of total variance explained by each factor (sums to ≤ 1), length `n_factors`.
+
+```jldoctest
+pca=rolling_pca(20, 2);
+R=[1.0 2.0 3.0 4.0; 2.0 4.0 6.0 8.0; 1.0 1.5 1.2 1.8];
+fit!(pca, R);
+explained_variance(pca)
+# output
+
+2-element Vector{Float64}:
+ 0.9942561416261809
+ 0.00574385837381898
+```
 """
 function explained_variance(pca::RollingPCA)
   pca.fitted || error("RollingPCA not fitted")
@@ -88,11 +147,25 @@ function explained_variance(pca::RollingPCA)
 end
 
 """
-    residual_corr(E::Matrix{Float64}) -> Matrix{Float64}
+    residual_corr(E::Matrix{Float64})
 
-[N × N] Pearson correlation matrix of the residual rows.
-After good PCA factorization this should be close to the identity matrix —
-off-diagonal entries indicate remaining common structure.
+[N × N] Pearson correlation matrix of the residual rows. After good PCA factorization this
+should be close to the identity matrix — off-diagonal entries indicate remaining common
+structure.
+
+```jldoctest
+pca=rolling_pca(20, 2);
+R=[1.0 2.0 3.0 4.0; 2.0 4.0 6.0 8.0; 1.0 1.5 1.2 1.8];
+fit!(pca, R);
+F, E = project(pca, R);
+round.(residual_corr(E); digits=3)
+# output
+
+3×3 Matrix{Float64}:
+ 1.0     0.545   0.721
+ 0.545   1.0    -0.182
+ 0.721  -0.182   1.0
+```
 """
 function residual_corr(E::Matrix{Float64})
   N, T = size(E)
@@ -103,8 +176,24 @@ end
 """
     plot_residual_corr(E::Matrix{Float64}, names::Vector{String})
 
-Print the residual correlation matrix as a formatted table.
-Returns the [N × N] correlation matrix.
+Print the residual correlation matrix as a formatted table, and return it.
+
+```jldoctest
+pca=rolling_pca(20, 2);
+R=[1.0 2.0 3.0 4.0; 2.0 4.0 6.0 8.0; 1.0 1.5 1.2 1.8];
+fit!(pca, R);
+F, E = project(pca, R);
+C = redirect_stdout(devnull) do
+    plot_residual_corr(E, ["AAA","BBB","CCC"])
+end;
+round.(C; digits=3)
+# output
+
+3×3 Matrix{Float64}:
+ 1.0     0.545   0.721
+ 0.545   1.0    -0.182
+ 0.721  -0.182   1.0
+```
 """
 function plot_residual_corr(E::Matrix{Float64}, names::Vector{String})
   C = residual_corr(E)

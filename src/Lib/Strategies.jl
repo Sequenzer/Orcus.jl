@@ -3,6 +3,22 @@
 
 `next` for `CrossOverStrategy`: closes all positions and buys 10 units on an SMA10/SMA20
 upward cross, or sells 10 units on a downward cross.
+
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+M=market([x,y]);
+B=Broker(M,1000);
+s=CrossOverStrategy(B);
+crossover_init(s);
+advance_to!(M, 100);
+crossover_next(s);
+length(s.broker.orders)
+# output
+
+0
+```
 """
 function crossover_next(s::Strategy)
   for (_, asset) in s.market.data
@@ -26,6 +42,30 @@ function crossover_next(s::Strategy)
   end
 end
 
+"""
+    crossover_init(s::Strategy)
+
+`init` for `CrossOverStrategy`: attaches SMA10/SMA20 indicators to every asset in the market.
+
+```jldoctest
+Random.seed!(1234);
+x=asset();
+M=market([x]);
+B=Broker(M,1000);
+s=CrossOverStrategy(B);
+crossover_init(s);
+names(x)
+# output
+
+6-element Vector{String}:
+ "Open"
+ "High"
+ "Low"
+ "Close"
+ "SMA20"
+ "SMA10"
+```
+"""
 function crossover_init(s::Strategy)
   SMA20 = IndicatorGenerator(simple_average, 20)
   SMA10 = IndicatorGenerator(simple_average, 10)

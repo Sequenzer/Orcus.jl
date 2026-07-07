@@ -1,12 +1,23 @@
 
 """
-    ema(v, w) -> Vector{Float64}
+    ema(v::Vector{Float64}, w::Int)
 
 Exponential moving average with span `w` (α = 2/(w+1)).
-Initialised with the SMA of the first `w` bars; `NaN` for earlier entries.
-Compatible with `IndicatorGenerator`:
-```julia
-apply_indicator(IndicatorGenerator(ema, 20), asset, "Close", "EMA20")
+Initialised with the SMA of the first `w` bars; `NaN` for earlier entries. Compatible with
+`IndicatorGenerator`: `apply_indicator(IndicatorGenerator(ema, 20), asset, "Close", "EMA20")`.
+
+```jldoctest
+round.(ema([1.0,2.0,3.0,4.0,5.0,6.0,7.0], 3); digits=4)
+# output
+
+7-element Vector{Float64}:
+ NaN
+ NaN
+   2.0
+   3.0
+   4.0
+   5.0
+   6.0
 ```
 """
 function ema(v::Vector{Float64}, w::Int)::Vector{Float64}
@@ -22,7 +33,19 @@ function ema(v::Vector{Float64}, w::Int)::Vector{Float64}
   return out
 end
 
-# IndicatorGenerator-compatible DataPoint form (uses the window stored in IndicatorGenerator)
+"""
+    ema(data::DataPoint)
+
+Single-window EMA over `data`, weighting each successive entry by the EMA formula — the
+`IndicatorGenerator`-compatible form (uses the window stored in `IndicatorGenerator`).
+
+```jldoctest
+round(ema([1.0,2.0,3.0]); digits=4)
+# output
+
+2.25
+```
+"""
 ema(data::DataPoint)::Float64 = begin
   length(data) < 2 && return NaN
   # Simple approximation: return last value weighted by EMA formula over the whole window
@@ -36,13 +59,34 @@ ema(data::DataPoint)::Float64 = begin
 end
 
 """
-    rsi(v, w=14) -> Vector{Float64}
+    rsi(v::Vector{Float64}, w::Int=14)
 
 Relative Strength Index using Wilder's smoothing.
-Returns values in [0, 100]; `NaN` for the first `w` bars.
-Compatible with `IndicatorGenerator`:
-```julia
-apply_indicator(IndicatorGenerator(rsi, 14), asset, "Close", "RSI14")
+Returns values in [0, 100]; `NaN` for the first `w` bars. Compatible with
+`IndicatorGenerator`: `apply_indicator(IndicatorGenerator(rsi, 14), asset, "Close", "RSI14")`.
+
+```jldoctest
+v=[1.0,2.0,1.5,2.5,3.0,2.0,3.5,4.0,3.0,5.0,4.5,6.0,5.5,7.0,6.5,8.0];
+round.(rsi(v, 5); digits=4)
+# output
+
+16-element Vector{Float64}:
+ NaN
+ NaN
+ NaN
+ NaN
+ NaN
+  62.5
+  74.4681
+  77.4648
+  59.8911
+  74.4065
+  66.8466
+  75.9934
+  68.1582
+  77.0367
+  69.0182
+  77.7161
 ```
 """
 function rsi(v::Vector{Float64}, w::Int=14)::Vector{Float64}
@@ -65,16 +109,27 @@ function rsi(v::Vector{Float64}, w::Int=14)::Vector{Float64}
 end
 
 """
-    atr(high, low, close, w=14) -> Vector{Float64}
+    atr(high::Vector{Float64}, low::Vector{Float64}, close::Vector{Float64}, w::Int=14)
 
-Average True Range using Wilder's smoothing.
-True Range = max(H-L, |H-prev_C|, |L-prev_C|).
-Returns `NaN` for the first `w+1` bars.
-Not directly IndicatorGenerator-compatible (needs three input series);
-call directly in strategy logic:
-```julia
-h = Float64.(asset["High"]); l = Float64.(asset["Low"]); c = Float64.(asset["Close"])
-atr_val = last(filter(!isnan, atr(h, l, c, 14)))
+Average True Range using Wilder's smoothing: True Range = max(H-L, |H-prev_C|, |L-prev_C|).
+Returns `NaN` for the first `w+1` bars. Not directly `IndicatorGenerator`-compatible (needs
+three input series) — call directly in strategy logic.
+
+```jldoctest
+h=[10.0,11.0,10.5,12.0,11.5,13.0,12.5];
+l=[9.0,10.0,9.5,11.0,10.5,12.0,11.5];
+c=[9.5,10.5,10.0,11.5,11.0,12.5,12.0];
+round.(atr(h,l,c,3); digits=4)
+# output
+
+7-element Vector{Float64}:
+ NaN
+ NaN
+ NaN
+   1.5
+   1.3333
+   1.5556
+   1.3704
 ```
 """
 function atr(high::Vector{Float64}, low::Vector{Float64},

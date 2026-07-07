@@ -1,10 +1,17 @@
 
 """
-    sharpe_ratio(equity; rf=0.0, periods_per_year=252) -> Float64
+    sharpe_ratio(equity::Vector{<:Real}; rf::Float64=0.0, periods_per_year::Int=252)
 
 Annualized Sharpe ratio computed from an equity curve.
 `rf` is the annualized risk-free rate (default 0). Returns `NaN` if there
 is insufficient data or zero volatility.
+
+```jldoctest
+round(sharpe_ratio([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+9.4412
+```
 """
 function sharpe_ratio(equity::Vector{<:Real};
   rf::Float64=0.0,
@@ -24,9 +31,16 @@ function sharpe_ratio(equity::Vector{<:Real};
 end
 
 """
-    max_drawdown(equity) -> Float64
+    max_drawdown(equity::Vector{<:Real})
 
 Maximum peak-to-trough drawdown as a fraction (0 to 1).
+
+```jldoctest
+round(max_drawdown([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+0.0286
+```
 """
 function max_drawdown(equity::Vector{<:Real})
   isempty(equity) && return 0.0
@@ -44,6 +58,21 @@ end
     backtest_summary(bt::Backtest)
 
 Print a concise performance summary for a completed backtest.
+
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+T=Backtest(market([x,y]),CrossOverStrategy,1000);
+run_test(T);
+r = redirect_stdout(devnull) do
+    backtest_summary(T)
+end;
+isnothing(r)
+# output
+
+true
+```
 """
 function backtest_summary(bt::Backtest)
   eq = bt.broker.equity_history
@@ -72,17 +101,37 @@ function backtest_summary(bt::Backtest)
 end
 
 """
-    cross_section_rank(v) -> Vector{Int}
+    cross_section_rank(v::Vector{Float64})
 
 Integer ranks 1…N (1 = smallest value). Useful for factor-based long/short construction.
+
+```jldoctest
+cross_section_rank([30.0,10.0,20.0])
+# output
+
+3-element Vector{Int64}:
+ 3
+ 1
+ 2
+```
 """
 cross_section_rank(v::Vector{Float64}) = sortperm(sortperm(v))
 
 """
-    cross_section_zscore(v) -> Vector{Float64}
+    cross_section_zscore(v::Vector{Float64})
 
 Normalize a cross-sectional score vector to zero mean and unit variance.
 Returns zeros if the vector has zero standard deviation.
+
+```jldoctest
+cross_section_zscore([1.0,2.0,3.0])
+# output
+
+3-element Vector{Float64}:
+ -1.0
+  0.0
+  1.0
+```
 """
 function cross_section_zscore(v::Vector{Float64})
   mu, sigma = mean(v), std(v)
@@ -91,10 +140,16 @@ function cross_section_zscore(v::Vector{Float64})
 end
 
 """
-    sortino_ratio(equity; rf=0.0, periods_per_year=252) -> Float64
+    sortino_ratio(equity::Vector{<:Real}; rf::Float64=0.0, periods_per_year::Int=252)
 
 Annualized Sortino ratio: like Sharpe but penalises downside volatility only.
-Downside deviation = sqrt(mean of squared negative excess returns).
+
+```jldoctest
+round(sortino_ratio([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+30.7092
+```
 """
 function sortino_ratio(equity::Vector{<:Real};
   rf::Float64=0.0,
@@ -113,9 +168,16 @@ function sortino_ratio(equity::Vector{<:Real};
 end
 
 """
-    calmar_ratio(equity; periods_per_year=252) -> Float64
+    calmar_ratio(equity::Vector{<:Real}; periods_per_year::Int=252)
 
 Annualized return divided by maximum drawdown.
+
+```jldoctest
+round(calmar_ratio([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+12363.7339
+```
 """
 function calmar_ratio(equity::Vector{<:Real}; periods_per_year::Int=252)
   length(equity) < 2 && return NaN
@@ -130,10 +192,17 @@ function calmar_ratio(equity::Vector{<:Real}; periods_per_year::Int=252)
 end
 
 """
-    profit_factor(equity) -> Float64
+    profit_factor(equity::Vector{<:Real})
 
 Gross profit / gross loss computed from the equity-curve return series.
 Returns `Inf` if there are no losing bars.
+
+```jldoctest
+round(profit_factor([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+4.0
+```
 """
 function profit_factor(equity::Vector{<:Real})
   length(equity) < 2 && return NaN
@@ -145,10 +214,17 @@ function profit_factor(equity::Vector{<:Real})
 end
 
 """
-    win_rate_bars(equity) -> Float64
+    win_rate_bars(equity::Vector{<:Real})
 
 Fraction of bars in which the equity curve increased (a rough proxy for
 trade-level win rate when the strategy has one position at a time).
+
+```jldoctest
+round(win_rate_bars([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+0.6
+```
 """
 function win_rate_bars(equity::Vector{<:Real})
   length(equity) < 2 && return NaN
@@ -157,10 +233,17 @@ function win_rate_bars(equity::Vector{<:Real})
 end
 
 """
-    annualized_return(equity; periods_per_year=252) -> Float64
+    annualized_return(equity::Vector{<:Real}; periods_per_year::Int=252)
 
 Compound Annual Growth Rate (CAGR): the constant yearly return that
 would produce the same total growth as the equity curve.
+
+```jldoctest
+round(annualized_return([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+353.2495
+```
 """
 function annualized_return(equity::Vector{<:Real}; periods_per_year::Int=252)
   length(equity) < 2 && return NaN
@@ -173,11 +256,18 @@ function annualized_return(equity::Vector{<:Real}; periods_per_year::Int=252)
 end
 
 """
-    value_at_risk(equity; confidence=0.95) -> Float64
+    value_at_risk(equity::Vector{<:Real}; confidence::Float64=0.95)
 
 Daily Value at Risk at the given confidence level: the return threshold
 such that losses exceed this level on `(1-confidence)` fraction of days.
 Returned as a negative number (a loss).
+
+```jldoctest
+round(value_at_risk([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+-0.0265
+```
 """
 function value_at_risk(equity::Vector{<:Real}; confidence::Float64=0.95)
   length(equity) < 2 && return NaN
@@ -187,11 +277,18 @@ function value_at_risk(equity::Vector{<:Real}; confidence::Float64=0.95)
 end
 
 """
-    cvar(equity; confidence=0.95) -> Float64
+    cvar(equity::Vector{<:Real}; confidence::Float64=0.95)
 
 Conditional Value at Risk (Expected Shortfall): the mean return on the
 worst `(1-confidence)` fraction of days. More conservative than VaR.
 Returned as a negative number.
+
+```jldoctest
+round(cvar([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+-0.0286
+```
 """
 function cvar(equity::Vector{<:Real}; confidence::Float64=0.95)
   length(equity) < 2 && return NaN
@@ -204,11 +301,17 @@ function cvar(equity::Vector{<:Real}; confidence::Float64=0.95)
 end
 
 """
-    omega_ratio(equity; threshold=0.0, periods_per_year=252) -> Float64
+    omega_ratio(equity::Vector{<:Real}; threshold::Float64=0.0, periods_per_year::Int=252)
 
 Omega ratio: probability-weighted ratio of gains to losses above/below
 `threshold` (annualised). Values > 1 indicate more gain than loss.
-Unlike Sharpe, Omega uses the full return distribution (captures skew/kurtosis).
+
+```jldoctest
+round(omega_ratio([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+4.1333
+```
 """
 function omega_ratio(equity::Vector{<:Real};
   threshold::Float64=0.0,
@@ -224,11 +327,17 @@ function omega_ratio(equity::Vector{<:Real};
 end
 
 """
-    ulcer_index(equity) -> Float64
+    ulcer_index(equity::Vector{<:Real})
 
 Ulcer Index: root mean square of all percentage drawdowns from peak.
 Captures both depth and duration of drawdowns. Lower is better.
-Useful as a risk denominator (Martin Ratio = CAGR / Ulcer Index).
+
+```jldoctest
+round(ulcer_index([100.0, 105.0, 102.0, 110.0, 108.0, 115.0]); digits=4)
+# output
+
+1.3826
+```
 """
 function ulcer_index(equity::Vector{<:Real})
   isempty(equity) && return 0.0
@@ -244,11 +353,17 @@ function ulcer_index(equity::Vector{<:Real})
 end
 
 """
-    information_ratio(equity, benchmark_equity; periods_per_year=252) -> Float64
+    information_ratio(equity::Vector{<:Real}, benchmark_equity::Vector{<:Real}; periods_per_year::Int=252)
 
 Information Ratio: annualised active return divided by tracking error
-vs a benchmark equity curve. Measures skill of active management.
-Values above 0.5 are considered good; above 1.0 exceptional.
+vs a benchmark equity curve. Values above 0.5 are considered good; above 1.0 exceptional.
+
+```jldoctest
+round(information_ratio([100.0, 105.0, 102.0, 110.0, 108.0, 115.0], [100.0, 104.0, 103.0, 107.0, 106.0, 112.0]); digits=4)
+# output
+
+4.2698
+```
 """
 function information_ratio(equity::Vector{<:Real},
   benchmark_equity::Vector{<:Real};
@@ -264,11 +379,21 @@ function information_ratio(equity::Vector{<:Real},
 end
 
 """
-    bah_equity(market, cash; key="Close") -> Vector{Float64}
+    bah_equity(market::Market, cash::Real; key::String="Close")
 
 Compute the equity curve of an equal-weight buy-and-hold strategy
-across all assets in `market` from bar 1 onward.
-Useful as a benchmark for `information_ratio` and `compare_backtests`.
+across all assets in `market` from bar 1 onward. Useful as a benchmark for
+[`information_ratio`](@ref) and [`compare_backtests`](@ref).
+
+```jldoctest
+Random.seed!(1);
+M=market([asset("AAPL"), asset("GOOG")]);
+eq=bah_equity(M, 1000.0);
+round(eq[1]; digits=4), length(eq)
+# output
+
+(1000.0, 3651)
+```
 """
 function bah_equity(market::Market, cash::Real; key::String="Close")
   nms = asset_names(market)
@@ -308,10 +433,18 @@ function bah_equity(market::Market, cash::Real; key::String="Close")
 end
 
 """
-    infer_periods_per_year(axis) -> Int
+    infer_periods_per_year(axis::Vector{DateTime})
 
 Bars per year implied by the median spacing of a time axis: intraday bars scale by bars
 per trading day, daily → 252, weekly → 52, monthly → 12, coarser → 1.
+
+```jldoctest
+using Dates;
+infer_periods_per_year(DateTime(2000,1,1) .+ Day.(0:1:400))
+# output
+
+252
+```
 """
 function infer_periods_per_year(axis::Vector{DateTime})
   length(axis) < 2 && return 252
@@ -324,16 +457,45 @@ function infer_periods_per_year(axis::Vector{DateTime})
   spacing <= 45 * day_ms && return 12
   return 1
 end
+
+"""
+    infer_periods_per_year(M::Market)
+
+Bars per year implied by `M`'s time axis (`252` if it has none).
+
+```jldoctest
+Random.seed!(1);
+infer_periods_per_year(market([asset()]))
+# output
+
+252
+```
+"""
 infer_periods_per_year(M::Market) =
   M.axis === nothing ? 252 : infer_periods_per_year(M.axis)
 
 """
-    extended_summary(bt::Backtest; benchmark=nothing, periods_per_year=inferred)
+    extended_summary(bt::Backtest; benchmark::Union{Vector{Float64},Nothing}=nothing, periods_per_year::Int=infer_periods_per_year(bt.broker.market))
 
 Print a detailed performance summary including CAGR, Sortino, Calmar,
 Omega, VaR, CVaR, and Ulcer Index. Pass a `benchmark` equity curve
-(e.g. from `bah_equity`) to also print the Information Ratio.
-`periods_per_year` defaults to [`infer_periods_per_year`](@ref) of the market.
+(e.g. from [`bah_equity`](@ref)) to also print the Information Ratio.
+
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+T=Backtest(market([x,y]),CrossOverStrategy,1000);
+run_test(T);
+T.broker.equity_history = [100.0, 105.0, 102.0, 110.0, 108.0, 115.0];
+r = redirect_stdout(devnull) do
+    extended_summary(T)
+end;
+isnothing(r)
+# output
+
+true
+```
 """
 function extended_summary(bt::Backtest; benchmark::Union{Vector{Float64},Nothing}=nothing,
   periods_per_year::Int=infer_periods_per_year(bt.broker.market))
@@ -392,11 +554,27 @@ function extended_summary(bt::Backtest; benchmark::Union{Vector{Float64},Nothing
 end
 
 """
-    compare_backtests(bts, names; benchmark=nothing)
+    compare_backtests(bts::Vector{<:Backtest}, names::Vector{String}; benchmark::Union{Vector{Float64},Nothing}=nothing)
 
 Print a side-by-side performance table for a collection of backtests.
 Columns: Strategy | CAGR | Sharpe | Sortino | Calmar | Omega | VaR95 | MaxDD | Trades.
 Pass `benchmark` (equity curve) to append an Information Ratio column.
+
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+T=Backtest(market([x,y]),CrossOverStrategy,1000);
+run_test(T);
+T.broker.equity_history = [100.0, 105.0, 102.0, 110.0, 108.0, 115.0];
+r = redirect_stdout(devnull) do
+    compare_backtests([T], ["CrossOver"])
+end;
+isnothing(r)
+# output
+
+true
+```
 """
 function compare_backtests(bts::Vector{<:Backtest}, names::Vector{String};
   benchmark::Union{Vector{Float64},Nothing}=nothing)

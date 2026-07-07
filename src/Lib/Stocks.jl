@@ -7,8 +7,11 @@ const _STOCKS_DATA_DIR = joinpath(@__DIR__, "data")
 
 Load the stock data from the CSV file `data/<name>.csv`.
 
-```julia
+```jldoctest
 load_stock("GOOG")
+# output
+
+Asset 'GOOG' with 6 datasets
 ```
 """
 function load_stock(name::String)
@@ -55,16 +58,19 @@ function _rename_columns(nt::NamedTuple, date::Symbol, columns::Dict{Symbol,Symb
 end
 
 """
-    load_csv(path::String; ticker=..., date::Symbol=:date,
-             columns::Dict{Symbol,Symbol}=Dict()) -> Asset
+    load_csv(path::String; ticker::String=splitext(basename(path))[1], date::Symbol=:date, columns::Dict{Symbol,Symbol}=Dict{Symbol,Symbol}())
 
 Load an OHLC CSV from an arbitrary file path. `date` names the source date column; `columns`
 maps source header names to Orcus's canonical names (`:open`/`:high`/`:low`/`:close`/`:volume`),
 e.g. `columns=Dict(:adjclose => :close)` for a Yahoo-style export. `ticker` defaults to the
 filename stem.
 
-```julia
-load_csv("myfile.csv"; date=:Date, columns=Dict(:Close => :close))
+```jldoctest
+path=joinpath(pkgdir(Orcus), "src", "Lib", "data", "GOOG.csv");
+load_csv(path)
+# output
+
+Asset 'GOOG' with 6 datasets
 ```
 """
 function load_csv(path::String; ticker::String=splitext(basename(path))[1],
@@ -96,21 +102,36 @@ function asset(fl::NamedTuple, name::String="Asset")
 end
 
 """
-    available_stocks() -> Vector{String}
+    available_stocks()
 
 List all stock tickers available in the data directory.
+
+```jldoctest
+length(available_stocks())
+# output
+
+34
+```
 """
 available_stocks() = sort([splitext(f)[1]
       for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
 
 """
-    load_csvs(paths::Vector{String}; tickers=..., date::Symbol=:date,
-              columns::Dict{Symbol,Symbol}=Dict()) -> Market
+    load_csvs(paths::Vector{String}; tickers::Vector{String}=[splitext(basename(p))[1] for p in paths], date::Symbol=:date, columns::Dict{Symbol,Symbol}=Dict{Symbol,Symbol}())
 
 Load multiple OHLC CSVs from arbitrary file paths onto a shared bar grid — the sorted union of
 all trading dates — and attach it as the market's time axis. Dates missing for a ticker are NaN
 bars. `tickers` defaults to each path's filename stem; `date`/`columns` are shared across all
-paths (see `load_csv`).
+paths (see [`load_csv`](@ref)).
+
+```jldoctest
+dir=joinpath(pkgdir(Orcus), "src", "Lib", "data");
+M=load_csvs([joinpath(dir, "AAPL.csv"), joinpath(dir, "GOOG.csv")]);
+length(M.data)
+# output
+
+2
+```
 """
 function load_csvs(paths::Vector{String};
   tickers::Vector{String}=[splitext(basename(p))[1] for p in paths],
@@ -135,11 +156,19 @@ function load_csvs(paths::Vector{String};
 end
 
 """
-    load_stocks(names::Vector{String}) -> Market
+    load_stocks(names::Vector{String})
 
 Load multiple stocks onto a shared bar grid — the sorted union of all trading dates —
 and attach it as the market's time axis. Dates missing for a ticker are NaN bars.
-All tickers must exist in the data directory (see `available_stocks()`).
+All tickers must exist in the data directory (see [`available_stocks`](@ref)).
+
+```jldoctest
+M=load_stocks(["AAPL","GOOG"]);
+length(M.data)
+# output
+
+2
+```
 """
 function load_stocks(names::Vector{String})
   return load_csvs([joinpath(_STOCKS_DATA_DIR, "$(n).csv") for n in names]; tickers=names)
@@ -150,5 +179,19 @@ end
 # these — wrap a copy: `market([copy(AAPL)])`. `batch_backtest` copies the market per job,
 # so sweeps over these are safe. `const` here is for binding type-stability, not immutability
 # of the underlying Asset.
+
+"""
+    AAPL
+
+Shared sample `Asset` fixture loaded from `data/AAPL.csv`. Wrap a copy before running a
+strategy against it: `market([copy(AAPL)])`.
+"""
 const AAPL = load_stock("AAPL")
+
+"""
+    GOOG
+
+Shared sample `Asset` fixture loaded from `data/GOOG.csv`. Wrap a copy before running a
+strategy against it: `market([copy(GOOG)])`.
+"""
 const GOOG = load_stock("GOOG")
