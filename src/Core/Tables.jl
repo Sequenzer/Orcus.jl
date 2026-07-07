@@ -39,6 +39,19 @@ end
     trades_table(B::Broker)
 
 Every fill in `B.history` as a Tables.jl row table.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+advance_to!(B.market, 1);
+A=B.market.assets[2];
+place_order!(B, Order(Buy(A,10)));
+process_all!(B);
+length(trades_table(B))
+# output
+
+1
+```
 """
 trades_table(B::Broker) =
   _with_timestamps(TradeRow[_trade_row(T) for T in B.history], B.market.axis)
@@ -54,6 +67,19 @@ _position_row((key, P)) = PositionRow((key.ticker, key.kind, key.strike, key.exp
     positions_table(B::Broker)
 
 Every open position in `B.portfolio` as a Tables.jl row table.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+advance_to!(B.market, 1);
+A=B.market.assets[2];
+place_order!(B, Order(Buy(A,10)));
+process_all!(B);
+length(positions_table(B))
+# output
+
+1
+```
 """
 positions_table(B::Broker) =
   PositionRow[_position_row(kp) for kp in zip(keys(B.portfolio), values(B.portfolio))]
@@ -64,6 +90,17 @@ const EquityRow = @NamedTuple{bar::Int, equity::Float64}
     equity_table(B::Broker)
 
 The equity curve (`B.equity_history`) as a Tables.jl row table.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+advance_to!(B.market, 1);
+process_all!(B);
+length(equity_table(B))
+# output
+
+1
+```
 """
 equity_table(B::Broker) = _with_timestamps(
   EquityRow[(bar=i, equity=e) for (i, e) in enumerate(B.equity_history)], B.market.axis
@@ -75,6 +112,19 @@ const CashflowRow = @NamedTuple{bar::Int, cash::Float64}
     cashflows_table(B::Broker)
 
 The cash balance over time (`cash_history`) as a Tables.jl row table.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+advance_to!(B.market, 1);
+A=B.market.assets[2];
+place_order!(B, Order(Buy(A,10)));
+process_all!(B);
+length(cashflows_table(B))
+# output
+
+3
+```
 """
 cashflows_table(B::Broker) = _with_timestamps(
   CashflowRow[(bar=d, cash=Float64(c)) for (d, c) in cash_history(B)], B.market.axis
@@ -89,6 +139,19 @@ Per-bar traded notional and turnover (`traded_notional / equity`) as a Tables.jl
 Uses `delta_cash` rather than `volume`/`price(T)`: close-out trades from
 [`resolve_portfolio!`](@ref) are recorded with `volume == 0.0` (the cash impact is carried
 by `delta_cash` instead), so `volume`-based notional would silently drop every forced close.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+advance_to!(B.market, 1);
+A=B.market.assets[2];
+place_order!(B, Order(Buy(A,10)));
+process_all!(B);
+length(turnover_table(B))
+# output
+
+1
+```
 """
 function turnover_table(B::Broker)
   n = length(B.equity_history)
@@ -117,10 +180,19 @@ const WeightRow = @NamedTuple{
     weights_table(B::Broker)
 
 Per-bar, per-instrument notional value and weight-of-equity as a Tables.jl row table.
-Replays `B.history` forward to rebuild net quantity per instrument over time (assets retain
-their full price matrix — `visible` is only a cursor — so historical marks are just an
-indexed read), then marks each open lot via [`payoff`](@ref) at that bar's Close, generic
-over every `Derivative` type.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+advance_to!(B.market, 1);
+A=B.market.assets[2];
+place_order!(B, Order(Buy(A,10)));
+process_all!(B);
+length(weights_table(B))
+# output
+
+1
+```
 """
 function weights_table(B::Broker)
   n = length(B.equity_history)

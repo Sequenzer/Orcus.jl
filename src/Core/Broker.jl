@@ -53,6 +53,22 @@ mutable struct Broker
   end
 end
 
+"""
+    broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
+    broker(n_Assets::Int, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
+
+Build a `Broker`. With a `market`, wraps it directly. With an asset count, builds a market of
+that many random assets first.
+
+```jldoctest
+Random.seed!(1);
+B = broker(3, 1000);
+length(B.market.assets)
+# output
+
+3
+```
+"""
 broker(
   market::Market,
   cash::Real;
@@ -85,10 +101,13 @@ Place an Order in the Broker's Orderbook
 ```jldoctest
 Random.seed!(1234);
 B = broker(3,1000);
-A = B.market.data[collect(keys(B.market.data))[2]]
+A = B.market.assets[2]
 O = Order(Buy(A,10))
 place_order!(B,O)
 B
+# output
+
+Broker with 1000.0 funds and 1 open orders
 ```
 """
 function place_order!(B::Broker, O::Order)
@@ -258,11 +277,14 @@ recorded as a rejection.
 ```jldoctest
 Random.seed!(1234);
 B = broker(3,1000);
-A = B.market.data[collect(keys(B.market.data))[2]]
+A = B.market.assets[2]
 O = Order(Buy(A,10))
 place_order!(B,O)
 process_order!(B,O)
 length(B.history)
+# output
+
+1
 ```
 """
 function process_order!(B::Broker, O::Order, check_books::Bool=true)
@@ -302,7 +324,7 @@ closing `Trade`, and removes the position from the portfolio. Forced — always 
 ```jldoctest
 Random.seed!(1234);
 B = broker(3,1000);
-A = B.market.data[collect(keys(B.market.data))[2]]
+A = B.market.assets[2]
 O = Order(Sell(A,10))
 place_order!(B,O)
 process_order!(B,O)
@@ -384,7 +406,7 @@ quantity still outstanding, stay queued for a future bar.
 ```jldoctest
 Random.seed!(1234);
 B = broker(3,1000);
-A = B.market.data[collect(keys(B.market.data))[2]]
+A = B.market.assets[2]
 O = Order(Buy(A,10))
 place_order!(B,O)
 process_orders!(B)
@@ -448,6 +470,26 @@ function check_margin!(B::Broker)
   return B
 end
 
+"""
+    process_all!(B::Broker)
+
+Run one full bar for the broker: process the orderbook, resolve any pending closes, accrue
+borrow fees and check margin, then record the bar's equity.
+
+```jldoctest
+Random.seed!(1);
+x=asset();
+y=asset();
+M=market([x,y]);
+B=broker(M,1000);
+advance_to!(M, 1);
+process_all!(B);
+length(B.equity_history)
+# output
+
+1
+```
+"""
 function process_all!(B::Broker)
   @inline
   isempty(B.orders) || process_orders!(B)        # skip the call entirely on no-order bars
@@ -504,6 +546,21 @@ end
     request_to_close_all!(B::Broker)
 
 Flag every open position to be closed on the next `resolve_portfolio!`/`process_all!`.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+request_to_close_all!(B);
+resolve_portfolio!(B);
+length(B.history)
+# output
+
+2
+```
 """
 function request_to_close_all!(B::Broker)
   set_all_close!(B.portfolio)   # barrier per type-group; no per-position boxing
@@ -515,6 +572,22 @@ end
     request_to_close!(B::Broker, ticker::String)
 
 Mark all open positions for `ticker` to be closed on the next `process_all!` call.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+ticker=B.market.assets[2].ticker;
+A=B.market.data[ticker];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+request_to_close!(B, ticker);
+resolve_portfolio!(B);
+length(B.history)
+# output
+
+2
+```
 """
 function request_to_close!(B::Broker, ticker::String)
   set_ticker_close!(B.portfolio, ticker)   # barrier per type-group; no per-position boxing
@@ -523,17 +596,44 @@ function request_to_close!(B::Broker, ticker::String)
 end
 
 """
-    has_position(B::Broker, ticker::String) -> Bool
+    has_position(B::Broker, ticker::String)
 
 Return `true` if the broker currently holds any open position (long or short) in `ticker`.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+ticker=B.market.assets[2].ticker;
+A=B.market.data[ticker];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+has_position(B, ticker)
+# output
+
+true
+```
 """
 has_position(B::Broker, ticker::String) = has_position(B.portfolio, ticker)
 
 """
-    position_direction(B::Broker, ticker::String) -> Symbol
+    position_direction(B::Broker, ticker::String)
 
-Return `:long`, `:short`, or `:flat` for the current open position in `ticker`. Direction is
-taken from the sign of `value(P)` so it is correct for both `Buy`/`Sell` legs and options.
+Return `:long`, `:short`, or `:flat` for the current open position in `ticker`.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+ticker=B.market.assets[2].ticker;
+A=B.market.data[ticker];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+position_direction(B, ticker)
+# output
+
+:long
+```
 """
 position_direction(B::Broker, ticker::String) = position_direction(B.portfolio, ticker)
 
@@ -546,11 +646,22 @@ unrealized_pnl(B::Broker) =
   sum(abs_return(P) for P in values(B.portfolio); init=0.0)
 
 """
-    realized_pnl(B::Broker) -> Float64
+    realized_pnl(B::Broker)
 
-Total realized trading P&L, net of all commissions and slippage, across open positions.
-Note: fully closed positions are dropped from the portfolio, so this tracks realized P&L
-still attached to live instruments.
+Total realized trading P&L, net of all commissions and slippage, across still-open positions.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+realized_pnl(B)
+# output
+
+0.0
+```
 """
 realized_pnl(B::Broker) =
   sum(realized_pnl(P) for P in values(B.portfolio); init=0.0)
@@ -565,15 +676,19 @@ length(B::Broker) = length(B.market)
 """
     cash_history(B::Broker)
 
-Return the cash history of the Broker
+Return the cash history of the Broker as a vector of `(date, cash)` tuples, one per trade
+plus the opening and current balance.
 
-# Example
-```julia
+```jldoctest
 Random.seed!(1234);
 M=market([asset(),asset()]);
-T = Backtest(M,CrossOverStrategy,1000)
-run_test(T)
-cash_history(T.broker)
+T=Backtest(M,CrossOverStrategy,1000);
+run_test(T);
+h=cash_history(T.broker);
+last(h)
+# output
+
+(3651, -18.284421217236527)
 ```
 """
 function cash_history(B::Broker)

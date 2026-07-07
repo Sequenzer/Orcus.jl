@@ -1,23 +1,20 @@
 
 """
-    batch_backtest(market, strategy, cash, grid; threaded=true, cost_model=NoCost(), progress=false)
+    batch_backtest(market::Market, strategy::Type, cash::Real, grid::AbstractVector; threaded::Bool=true, cost_model::CostModel=NoCost(), progress::Bool=false)
 
 Run a parameter sweep of `strategy` over `market`, one backtest per entry of `grid`, returning
-a `Vector{Backtest}` **in input order**.
+a `Vector{Backtest}` in input order. `grid` is a vector of `NamedTuple`s forwarded as keyword
+arguments to the strategy constructor — declare the swept parameters as typed fields with
+`@generate_strategy` (or a custom `@strategy_methods` struct):
 
-Each job is fully isolated: the runner deep-`copy`s `market` (so the shared per-asset `visible`
-cursor and any indicators attached in `init` are private to the job) and builds its own
-`Backtest`. With that isolation, jobs run on separate threads with no shared mutable state — the
-threaded result is identical to the sequential one.
+```jldoctest
+Random.seed!(1);
+@generate_strategy SMAcross crossover_next crossover_init fast::Int=10 slow::Int=20;
+res = batch_backtest(market([copy(AAPL)]), SMAcross, 10_000, [(fast=5, slow=20), (fast=10, slow=30)]);
+length(res)
+# output
 
-`grid` is a vector of `NamedTuple`s forwarded as keyword arguments to the strategy constructor.
-Declare the swept parameters as typed fields with `@generate_strategy` (or a custom
-`@strategy_methods` struct whose constructor accepts the same keywords):
-
-```julia
-@generate_strategy SMAcross cross_next cross_init fast::Int=10 slow::Int=20
-res = batch_backtest(market([copy(AAPL)]), SMAcross, 10_000,
-                     [(fast=5, slow=20), (fast=10, slow=30)])
+2
 ```
 
 Keyword arguments:
@@ -37,17 +34,21 @@ function batch_backtest(market::Market, strategy::Type, cash::Real,
 end
 
 """
-    batch_backtest(builder, n; threaded=true, progress=false) -> Vector{Backtest}
+    batch_backtest(builder, n::Integer; threaded=true, progress=false)
 
-Lower-level form: run `n` jobs where `builder(i)` returns an already-isolated `Backtest` (its own
-copied or freshly loaded market). The runner executes and collects them, but performs **no**
-implicit market copy — the builder owns isolation. Use this for sweeps that vary the universe
-itself rather than just strategy parameters:
+Lower-level form: run `n` jobs where `builder(i)` returns an already-built `Backtest`, returning
+a `Vector{Backtest}` in input order. Use this for sweeps that vary the universe itself rather
+than just strategy parameters (the caller's `builder` is responsible for market isolation):
 
-```julia
-res = batch_backtest(length(universes)) do i
-    run_test(Backtest(market([copy(a) for a in universes[i]]), MyStrat, 10_000))
-end
+```jldoctest
+Random.seed!(1);
+res = batch_backtest(2) do i
+    run_test(Backtest(market([copy(AAPL)]), CrossOverStrategy, 10_000))
+end;
+length(res)
+# output
+
+2
 ```
 """
 function batch_backtest(builder, n::Integer; threaded::Bool=true, progress::Bool=false)

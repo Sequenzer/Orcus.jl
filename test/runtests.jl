@@ -4,6 +4,7 @@ using Orcus
 using Dates
 using Random
 using RecipesBase  # recipes are exercised renderer-free via apply_recipe
+using Statistics
 using Tables
 
 @testset verbose = true "Orcus.jl" begin

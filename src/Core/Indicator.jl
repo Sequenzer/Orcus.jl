@@ -1,17 +1,14 @@
 
 """
-    IndicatorGenerator(f::Function,window::Int)
+    IndicatorGenerator(f::Function, window::Int)
 
-# Fields
-- f: computation function
-- window: lookback size
+A rolling-window indicator: applies `f` to each `window`-length slice of a data series.
 
-# Example
 ```jldoctest
-SMA10=indicator_generator(simple_average,10)
+SMA10=IndicatorGenerator(simple_average,10)
 SMA10.window
-
 # output
+
 10
 ```
 """
@@ -34,8 +31,15 @@ indicator_generator(calc_func::Function, window::Int=1) =
   IndicatorGenerator(calc_func, window)
 
 """
+    simple_average(data::DataPoint)
 
-simple_average([1,missing,3,4])
+Mean of `data`, ignoring NaN entries.
 
+```jldoctest
+simple_average([1.0,NaN,3.0,4.0])
+# output
+
+2.6666666666666665
+```
 """
 simple_average(data::DataPoint)::Float64 = mean(filter(!isnan, data))

@@ -15,7 +15,7 @@ run_test(T)
 
 # output
 
-Backtest of CrossOverStrategy with 375.71 funds on market comprised of 2 assets.
+Backtest of CrossOverStrategy with -18.28 funds on market comprised of 2 assets.
 
 ```
 """
@@ -52,6 +52,24 @@ backtest(
   next(BT.strategy)
   return nothing
 end
+"""
+    run_test(BT::Backtest)
+
+Run the backtest to completion, one bar at a time, then mark it completed.
+
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+M=market([x,y]);
+T=Backtest(M,CrossOverStrategy,1000);
+run_test(T);
+T.completed
+# output
+
+true
+```
+"""
 function run_test(BT::Backtest)
   if BT.completed
     error("Backtest already completed")

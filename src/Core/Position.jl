@@ -1,5 +1,5 @@
 """
-    Position
+    Position(D::Derivative)
 
 A netted position in a single instrument (identified by `instrument_key`). All fills on
 the same instrument aggregate here:
@@ -17,6 +17,7 @@ subtracted from `realized_pnl` as they occur. Equity (`cash + Σ value(P) - Σ l
 source of truth and already reflects fees via the cash ledger.
 
 ```jldoctest
+Random.seed!(1);
 A = asset()
 P = Position(Buy(A, 0))
 apply_trade!(P, 10.0, value(A), 0.0)   # open 10 @ spot
@@ -56,32 +57,185 @@ Base.show(io::IO, P::Position) =
     )
   end
 
+"""
+    volume(P::Position)
+
+The position's signed net quantity.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+volume(P)
+# output
+
+10.0
+```
+"""
 volume(P::Position) = P.net_qty
+
+"""
+    value(P::Position)
+
+Current mark-to-market value of the position, in the broker's base currency.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+value(P)
+# output
+
+94.55734786039032
+```
+"""
 @inline value(P::Position) =
   _fx_convert(P.derivative.underlying, P.net_qty * value(P.derivative))
+
+"""
+    u_value(P::Position)
+
+Current value of the position in the underlying's own price units, before fx conversion.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+u_value(P)
+# output
+
+94.55734786039032
+```
+"""
 u_value(P::Position) = P.net_qty * u_value(P.derivative)
+
+"""
+    price(P::Position)
+
+Cost basis of the position (`net_qty * avg_cost`).
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+price(P)
+# output
+
+94.55734786039032
+```
+"""
 price(P::Position) = P.net_qty * P.avg_cost                 # cost basis
+
+"""
+    abs_return(P::Position)
+
+Unrealized P&L: current value minus cost basis.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+abs_return(P)
+# output
+
+0.0
+```
+"""
 abs_return(P::Position) = value(P) - price(P)                    # unrealized
+
+"""
+    pct_return(P::Position)
+
+Unrealized P&L as a fraction of the cost basis (`0.0` if the cost basis is `0.0`).
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+pct_return(P)
+# output
+
+0.0
+```
+"""
 pct_return(P::Position) = price(P) == 0 ? 0.0 : abs_return(P) / abs(price(P))
+
+"""
+    log_return(P::Position)
+
+Log return of current value over cost basis (`-Inf` if the value is non-positive).
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+log_return(P)
+# output
+
+0.0
+```
+"""
 log_return(P::Position) = value(P) <= 0 ? -Inf : log(value(P) / price(P))
+
+"""
+    realized_pnl(P::Position)
+
+Realized trading P&L on the position, net of commissions and slippage.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+realized_pnl(P)
+# output
+
+0.0
+```
+"""
 realized_pnl(P::Position) = P.realized_pnl
 
+"""
+    is_closed(P::Position)
+
+Whether the position's net quantity is zero.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+is_closed(P)
+# output
+
+true
+```
+"""
 is_closed(P::Position) = P.net_qty == 0.0
 
 """
     apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0; borrowed::Real=0.0)
 
-Fold a fill of signed `qty` units at per-unit `fill_price` (raw, fee-exclusive) into the
-netted position. `fee` is the total commission+slippage on the fill; it is subtracted
-from `realized_pnl`. `borrowed` is the broker-financed dollar amount of *this* fill
-(`0.0` unless opening/adding under a margin model) — see `loan` on `Position`.
+Fold a fill of signed `qty` units at per-unit `fill_price` into the netted position, updating
+cost basis on same-direction fills or realizing P&L on reducing/closing/flipping fills.
+`fee` is subtracted from `realized_pnl`; `borrowed` accumulates into `loan`.
 
-- Adding (same sign / opening): updates the weighted-average `avg_cost` and accumulates
-  `loan += borrowed`.
-- Reducing/closing (opposite sign): realizes P&L on the closed quantity and repays `loan`
-  proportionally to the fraction of the position closed. If the fill flips the position
-  through zero, the remainder opens a fresh lot at `fill_price` (with `loan == 0.0`, since
-  the proportional repay above already drove it there on a full close).
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+apply_trade!(P, 10.0, value(A), 0.0);
+P.net_qty
+# output
+
+10.0
+```
 """
 function apply_trade!(
   P::Position, qty::Real, fill_price::Real, fee::Real=0.0; borrowed::Real=0.0
@@ -114,9 +268,19 @@ end
 """
     request_to_close(P::Position)
 
-Set the position's close flag. To have the broker actually close it, request the close
-through the broker API (`request_to_close_all!`/`request_to_close!`), which also arms the broker's
-per-bar resolve; `resolve_portfolio!` skips its scan unless a broker-level close was requested.
+Set the position's close flag. Use the broker API
+([`request_to_close_all!`](@ref)/[`request_to_close!`](@ref)) to actually have it closed.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+P=Position(Buy(A,0));
+request_to_close(P);
+P.requestToClose
+# output
+
+true
+```
 """
 function request_to_close(P::Position)
   P.requestToClose = true

@@ -12,6 +12,13 @@ abstract type OrderKind end
 
 Fills unconditionally at `price(order.derivative)` — the default, unchanged since before order
 kinds existed.
+
+```jldoctest
+MarketOrder()
+# output
+
+MarketOrder()
+```
 """
 struct MarketOrder <: OrderKind end
 
@@ -20,6 +27,13 @@ struct MarketOrder <: OrderKind end
 
 Resting order that only fills once the bar's range reaches a price at least as good as `price`
 (in the underlying asset's own price units). Fills at the better of the bar's open and `price`.
+
+```jldoctest
+Limit(100.0)
+# output
+
+Limit(100.0)
+```
 """
 struct Limit <: OrderKind
   price::Float64
@@ -32,6 +46,13 @@ Limit(price::Real) = Limit(Float64(price))
 Resting order that fills once the bar's range breaches `price` (in the underlying asset's own
 price units) — the mirror image of [`Limit`](@ref). Fills at the worse of the bar's open and
 `price`.
+
+```jldoctest
+Stop(95.0)
+# output
+
+Stop(95.0)
+```
 """
 struct Stop <: OrderKind
   price::Float64
@@ -77,6 +98,20 @@ mutable struct Order{D<:Derivative,K<:OrderKind}
   end
 end
 
+"""
+    order(derivative::Derivative, volume::Real=1, kind::OrderKind=MarketOrder(); allow_partial::Bool=false)
+
+Convenience constructor for an `Order`.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+order(Buy(A,10)).fulfilled
+# output
+
+false
+```
+"""
 order(
   derivative::Derivative,
   volume::Real=1,
@@ -86,17 +121,35 @@ order(
   Order(derivative, volume, kind; allow_partial=allow_partial)
 
 """
-    limit_order(derivative, volume, price; allow_partial=false)
+    limit_order(derivative::Derivative, volume::Real, price::Real; allow_partial::Bool=false)
 
 Convenience constructor for an `Order` with a [`Limit`](@ref) kind.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+limit_order(Buy(A,10), 10, 95.0).kind
+# output
+
+Limit(95.0)
+```
 """
 limit_order(derivative::Derivative, volume::Real, price::Real; allow_partial::Bool=false) =
   Order(derivative, volume, Limit(price); allow_partial=allow_partial)
 
 """
-    stop_order(derivative, volume, price; allow_partial=false)
+    stop_order(derivative::Derivative, volume::Real, price::Real; allow_partial::Bool=false)
 
 Convenience constructor for an `Order` with a [`Stop`](@ref) kind.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+stop_order(Buy(A,10), 10, 95.0).kind
+# output
+
+Stop(95.0)
+```
 """
 stop_order(derivative::Derivative, volume::Real, price::Real; allow_partial::Bool=false) =
   Order(derivative, volume, Stop(price); allow_partial=allow_partial)
@@ -105,19 +158,42 @@ Base.show(io::IO, O::Order) = print(
   io, "Order for $(O.volume) $(name(O.derivative)) on $(O.derivative.underlying.ticker)"
 )
 
+"""
+    volume(order::Order)
+
+The order's original requested quantity (never mutated as fills occur).
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+volume(order(Buy(A,10), 5))
+# output
+
+5.0
+```
+"""
 volume(order::Order) = order.volume
 
 """
-    remaining(order::Order) -> Float64
+    remaining(order::Order)
 
 Signed quantity still unfilled on `order`.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+remaining(order(Buy(A,10)))
+# output
+
+1.0
+```
 """
 remaining(order::Order) = order.remaining
 
 """
-    price(order::Order,date::DateTime=now()) 
+    price(order::Order)
 
-The price of a placed Order, can be negative.
+The price of a placed order, can be negative.
 
 ```jldoctest
 Random.seed!(1234);
@@ -127,15 +203,15 @@ O=order(B,10);
 price(O)
 # output
 
-1080.1689673025153
+788.771178523604
 ```
 """
 price(order::Order) = price(order.derivative) * volume(order)
 
-"""    
-    fulfill(order::Order,date::DateTime=now())
+"""
+    fulfill(order::Order, date::Int=length(order.derivative.underlying))
 
-Fulfill an Order, returns the price of the Order.
+Fulfill an order, returns its price.
 
 ```jldoctest
 Random.seed!(1234);
@@ -145,7 +221,7 @@ O=Order(B,10);
 fulfill(O,100)
 # output
 
-1202.1778063564075
+788.771178523604
 ```
 """
 function fulfill(order::Order, date::Int=length(order.derivative.underlying))
@@ -173,20 +249,24 @@ false
 isfulfilled(order::Order) = order.fulfilled
 
 """
-    check_trigger(O::Order, B::Broker, date::Int) -> (triggered::Bool, fill_price::Float64)
+    check_trigger(O::Order, B, date::Int)
 
-Whether `O` fills on bar `date`, and at what price. `MarketOrder`s always trigger at
-`price(O.derivative)` — unchanged from the pre-order-kind behavior. `Limit`/`Stop` orders on
-`Buy`/`Sell` derivatives trigger against the underlying asset's Open/High/Low for `date`, using
-the conservative gap convention (fill at the better-of the bar's open and the trigger price).
+Whether `O` fills on bar `date`, and at what price, as `(triggered, fill_price)`.
+`MarketOrder`s always trigger at `price(O.derivative)`. `Limit`/`Stop` orders on `Buy`/`Sell`
+derivatives trigger against the underlying asset's Open/High/Low for `date`.
 
-Direction (does the order want price to fall or rise to trigger?) is derived from
-`sign(price(O.derivative)) * sign(remaining(O))`: positive means this fill is a cash outflow
-(buy-side semantics — long entry, or short cover), negative means a cash inflow (sell-side
-semantics — long exit, or short entry via `Sell`).
+Not defined for other derivative types (options etc.) — limit/stop orders on them raise
+`MethodError` rather than behaving silently wrong.
 
-Not defined for other derivative types (options etc.) — their price has no per-bar repricing
-formula, so limit/stop orders on them raise `MethodError` rather than behaving silently wrong.
+```jldoctest
+Random.seed!(1);
+A=asset();
+O=Order(Buy(A,10));
+check_trigger(O, nothing, 1)
+# output
+
+(true, 19.45573478603903)
+```
 """
 check_trigger(O::Order{D,MarketOrder}, B, date::Int) where {D<:Derivative} =
   (true, price(O.derivative))

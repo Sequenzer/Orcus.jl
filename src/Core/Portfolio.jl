@@ -35,15 +35,16 @@ Group{D}() where {D<:Derivative} = Group{D}(Position{D}[], InstrumentKey[])
 end
 
 """
-    Portfolio
+    Portfolio()
 
-Netted positions grouped by concrete derivative type. The built-in linear types get
-dedicated concretely-typed fields (`buy`, `sell`) — the per-bar equity walk touches them
-with zero dispatch, no boxed loads, no `isa` checks. `others` holds `Group{D}`s for
-user-defined derivative types behind `Any` (open world); it is empty in the common case
-and every hot accessor guards it with one `isempty`. `n` caches the total open-position
-count for O(1) `length`; `_acc` is a reused scratch accumulator so the open-world group
-barrier returns `nothing` (no boxed return).
+Netted open positions, keyed by [`InstrumentKey`](@ref).
+
+```jldoctest
+isempty(Portfolio())
+# output
+
+true
+```
 """
 mutable struct Portfolio
   const buy::Group{Buy}
@@ -57,11 +58,22 @@ Portfolio() = Portfolio(Group{Buy}(), Group{Sell}(), Any[], 0, 0.0)
 
 # ── hot path: equity mark ─────────────────────────────────────────────────────
 """
-    total_value(pf::Portfolio) -> Float64
+    total_value(pf::Portfolio)
 
-Sum of `value(P)` over all open positions. The `buy`/`sell` fields are concretely typed, so
-the common case is two inlined contiguous scans with no dispatch; open-world groups route
-through the `_acc` scratch field to dodge the boxed return of their one runtime dispatch.
+Sum of `value(P)` over all open positions.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+total_value(B.portfolio)
+# output
+
+22.50173968887256
+```
 """
 function total_value(pf::Portfolio)
   s = _group_sum(pf.buy) + _group_sum(pf.sell)
@@ -88,11 +100,23 @@ _add_group_value!(pf::Portfolio, g::Group{D}) where {D} = (
 )
 
 """
-    total_loan(pf::Portfolio) -> Float64
+    total_loan(pf::Portfolio)
 
 Sum of `P.loan` over all open positions — the aggregate broker-financed debt outstanding.
-Structurally identical to [`total_value`](@ref) (same concretely-typed, allocation-free walk);
-always `0.0` unless positions were opened under a margin model with `initial_margin_pct < 1.0`.
+Always `0.0` unless positions were opened under a margin model with `initial_margin_pct < 1.0`.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+total_loan(B.portfolio)
+# output
+
+0.0
+```
 """
 function total_loan(pf::Portfolio)
   s = _group_loan_sum(pf.buy) + _group_loan_sum(pf.sell)
@@ -285,10 +309,23 @@ _set_ticker_close!(g::Group{D}, ticker::String) where {D} = begin
 end
 
 """
-    has_position(pf::Portfolio, ticker::String) -> Bool
+    has_position(pf::Portfolio, ticker::String)
 
 Return `true` if the portfolio holds any open position (long or short) in `ticker`.
-Barrier per type-group; allocation-free.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+ticker=B.market.assets[2].ticker;
+A=B.market.data[ticker];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+has_position(B.portfolio, ticker)
+# output
+
+true
+```
 """
 function has_position(pf::Portfolio, ticker::String)
   (_has_ticker(pf.buy, ticker) || _has_ticker(pf.sell, ticker)) && return true
@@ -305,10 +342,23 @@ _has_ticker(g::Group{D}, ticker::String) where {D} = begin
 end
 
 """
-    position_direction(pf::Portfolio, ticker::String) -> Symbol
+    position_direction(pf::Portfolio, ticker::String)
 
-Return `:long`, `:short`, or `:flat` for the first open position in `ticker` (walk order
-matches `values(pf)`). Barrier per type-group; allocation-free.
+Return `:long`, `:short`, or `:flat` for the first open position in `ticker`.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+ticker=B.market.assets[2].ticker;
+A=B.market.data[ticker];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+position_direction(B.portfolio, ticker)
+# output
+
+:long
+```
 """
 function position_direction(pf::Portfolio, ticker::String)
   d = _ticker_direction(pf.buy, ticker)

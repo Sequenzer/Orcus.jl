@@ -12,16 +12,15 @@ load_stock("GOOG")
 ```
 """
 function load_stock(name::String)
-  dt = read_stock_csv(joinpath(_STOCKS_DATA_DIR, "$(name).csv"))
-  return asset(dt, name)
+  return load_csv(joinpath(_STOCKS_DATA_DIR, "$(name).csv"); ticker=name)
 end
 
-# Minimal reader for the sample stock CSVs: a header row of column names followed by
-# comma-separated rows. The `date` column is parsed as `Date`, every other column as
-# `Float64`. Returns a `NamedTuple` of columns so downstream code can use `nt[:date]`,
-# `propertynames(nt)`, and `hasproperty`. Avoids a CSV.jl dependency for the few fixtures
-# we ship; it is not a general-purpose CSV parser (no quoting, no embedded commas).
-function read_stock_csv(path::String)
+# Minimal reader for CSVs: a header row of column names followed by comma-separated rows.
+# `date_col` is parsed as `Date`, every other column as `Float64`. Returns a `NamedTuple` of
+# columns so downstream code can use `nt[:date]`, `propertynames(nt)`, and `hasproperty`.
+# Avoids a CSV.jl dependency; it is not a general-purpose CSV parser (no quoting, no embedded
+# commas).
+function read_stock_csv(path::String; date_col::Symbol=:date)
   lines = readlines(path)
   isempty(lines) && error("empty CSV file: $path")
   header = Symbol.(split(lines[1], ','))
@@ -36,34 +35,60 @@ function read_stock_csv(path::String)
     end
   end
   parsed = map(header, cols) do name, col
-    name === :date ? parse.(Date, col) : parse.(Float64, col)
+    name === date_col ? parse.(Date, col) : parse.(Float64, col)
   end
   return NamedTuple{Tuple(header)}(Tuple(parsed))
 end
 
-function to_index(v::Vector{Dates.Date})
-  if issorted(v)
-    mi = Dates.value(v[1])
-  elseif issorted(v; rev=true)
-    return to_index(reverse(v))
-  else
-    return to_index(sort!(v))
+# Renames `nt`'s date column to :date and every other column per `columns` (source name →
+# canonical name), so downstream code (`asset(::NamedTuple, ...)`) can rely on `:date` and
+# arbitrary canonical names regardless of the source CSV's header spelling.
+function _rename_columns(nt::NamedTuple, date::Symbol, columns::Dict{Symbol,Symbol})
+  names = Symbol[:date]
+  vals = Any[nt[date]]
+  for name in propertynames(nt)
+    name === date && continue
+    push!(names, get(columns, name, name))
+    push!(vals, nt[name])
   end
-
-  return [Dates.value(d) - mi + 1 for d in v]
+  return NamedTuple{Tuple(names)}(Tuple(vals))
 end
+
+"""
+    load_csv(path::String; ticker=..., date::Symbol=:date,
+             columns::Dict{Symbol,Symbol}=Dict()) -> Asset
+
+Load an OHLC CSV from an arbitrary file path. `date` names the source date column; `columns`
+maps source header names to Orcus's canonical names (`:open`/`:high`/`:low`/`:close`/`:volume`),
+e.g. `columns=Dict(:adjclose => :close)` for a Yahoo-style export. `ticker` defaults to the
+filename stem.
+
+```julia
+load_csv("myfile.csv"; date=:Date, columns=Dict(:Close => :close))
+```
+"""
+function load_csv(path::String; ticker::String=splitext(basename(path))[1],
+  date::Symbol=:date, columns::Dict{Symbol,Symbol}=Dict{Symbol,Symbol}())
+  nt = _rename_columns(read_stock_csv(path; date_col=date), date, columns)
+  return asset(nt, ticker)
+end
+
+# Dense bar index (1 = earliest date) for an *ascending* date vector.
+to_index(v::Vector{Dates.Date}) = [Dates.value(d) - Dates.value(minimum(v)) + 1 for d in v]
 
 function asset(fl::NamedTuple, name::String="Asset")
   @assert hasproperty(fl, :date) "The CSV file must have a date column"
-  index = to_index(fl[:date])
+  perm = sortperm(fl[:date])       # accept any row order (ascending, descending, unsorted)
+  dates = fl[:date][perm]
+  index = to_index(dates)
   nms = collect(filter(x -> x !== :date, propertynames(fl)))
   data = DataPoint[]
 
   for n in nms
     v = fill(NaN, index[end])      # NaN = no data for this bar
-    dt = reverse(fl[n])
-    for i in 1:length(fl[:date])
-      v[index[i]] = Float64(dt[i])
+    col = fl[n][perm]
+    for i in eachindex(dates)
+      v[index[i]] = Float64(col[i])
     end
     push!(data, v)
   end
@@ -79,18 +104,22 @@ available_stocks() = sort([splitext(f)[1]
       for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
 
 """
-    load_stocks(names::Vector{String}) -> Market
+    load_csvs(paths::Vector{String}; tickers=..., date::Symbol=:date,
+              columns::Dict{Symbol,Symbol}=Dict()) -> Market
 
-Load multiple stocks onto a shared bar grid — the sorted union of all trading dates —
-and attach it as the market's time axis. Dates missing for a ticker are NaN bars.
-All tickers must exist in the data directory (see `available_stocks()`).
+Load multiple OHLC CSVs from arbitrary file paths onto a shared bar grid — the sorted union of
+all trading dates — and attach it as the market's time axis. Dates missing for a ticker are NaN
+bars. `tickers` defaults to each path's filename stem; `date`/`columns` are shared across all
+paths (see `load_csv`).
 """
-function load_stocks(names::Vector{String})
-  nts = [read_stock_csv(joinpath(_STOCKS_DATA_DIR, "$(n).csv")) for n in names]
+function load_csvs(paths::Vector{String};
+  tickers::Vector{String}=[splitext(basename(p))[1] for p in paths],
+  date::Symbol=:date, columns::Dict{Symbol,Symbol}=Dict{Symbol,Symbol}())
+  nts = [_rename_columns(read_stock_csv(p; date_col=date), date, columns) for p in paths]
   grid = sort!(unique(reduce(vcat, [nt.date for nt in nts])))
   pos = Dict(d => j for (j, d) in enumerate(grid))
   M = market()
-  for (name, nt) in zip(names, nts)
+  for (name, nt) in zip(tickers, nts)
     cols = collect(filter(x -> x !== :date, propertynames(nt)))
     data = fill(NaN, length(cols), length(grid))
     for (r, c) in enumerate(cols)
@@ -103,6 +132,17 @@ function load_stocks(names::Vector{String})
   end
   set_axis!(M, grid)
   return M
+end
+
+"""
+    load_stocks(names::Vector{String}) -> Market
+
+Load multiple stocks onto a shared bar grid — the sorted union of all trading dates —
+and attach it as the market's time axis. Dates missing for a ticker are NaN bars.
+All tickers must exist in the data directory (see `available_stocks()`).
+"""
+function load_stocks(names::Vector{String})
+  return load_csvs([joinpath(_STOCKS_DATA_DIR, "$(n).csv") for n in names]; tickers=names)
 end
 
 # Shared, mutable sample fixtures. A backtest's `init` can mutate an Asset in place

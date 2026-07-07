@@ -10,49 +10,46 @@
     @testset "constant" begin
       ticker = "TSTS"
       i = 1:1:100
-      prp_func = (x)->0
-      A = asset(ticker, i, prp_func, 100, 10)
+      A = asset(ticker, i, 0.0, 0.0, 100, 10)   # mu=0, sigma=0 -> exact martingale, no noise
       @test A["Close"] == fill(100, 100)
       @test length(A) == 100
     end
-    @testset "linear+" begin
+    @testset "geometric growth" begin
       ticker = "TSTS"
       i = 1:1:100
-      prp_func = (x)->1
-      A = asset(ticker, i, prp_func, 100, 2)
-      @test A["Close"] == 100 .+ i
-      @test A["High"][1] == 101
+      mu = log(2) / 100   # deterministic drift: Close[100] == 100 * 2^1 == 200
+      A = asset(ticker, i, mu, 0.0, 100, 2)
+      @test A["Close"] ≈ 100 .* 2 .^ (i ./ 100)
+      @test A["High"] == A["Close"]              # growing bar: high == close
       @test A["Low"][1] == 100
-      @test A["Low"][end] == 199
+      @test issorted(A["Close"])
       @test length(A) == 100
-      @test value(A) == A["Close"][end]
-      @test value(A) == 200
-      @test value(A, "Low") == 199
+      @test value(A) ≈ A["Close"][end]
+      @test value(A) ≈ 200
     end
     @testset "name indexing is concrete and throws on absent keys" begin
-      A = asset("TSTS", 1:1:100, (x)->0, 100, 10)
+      A = asset("TSTS", 1:1:100, 0.0, 0.0, 100, 10)
       @test_throws KeyError A["NOPE"]
       @test_throws KeyError A["NOPE", 1]
       @test @inferred(A["Close"]) isa Vector{Float64}
       @test @inferred(A["Close", 1]) isa Float64
     end
-    @testset "linear-" begin
+    @testset "geometric decay" begin
       ticker = "TSTS"
       i = 1:1:100
-      prp_func = (x)->-1
-      A = asset(ticker, i, prp_func, 100, 2)
-      @test A["Close"] == 100 .- i
+      mu = -log(2) / 100   # deterministic drift: Close[100] == 100 * 2^-1 == 50
+      A = asset(ticker, i, mu, 0.0, 100, 2)
+      @test A["Close"] ≈ 100 .* 2 .^ (-i ./ 100)
+      @test A["Low"] == A["Close"]               # shrinking bar: low == close
       @test A["High"][1] == 100
-      @test A["Low"][1] == 99
-      @test A["Low"][end] == 0
+      @test issorted(A["Close"]; rev=true)
       @test length(A) == 100
     end
 
     @testset "add_datapoint!" begin
       ticker = "TSTS"
       i = 1:1:100
-      prp_func = (x)->0
-      A = asset(ticker, i, prp_func, 100, 2)
+      A = asset(ticker, i, 0.0, 0.0, 100, 2)
       SMA20=IndicatorGenerator(simple_average, 20)
       apply_indicator(SMA20, A, "Close", "SMA20")
       add_datapoint!(A, Float64[113, 113, 113, 113, NaN])

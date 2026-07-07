@@ -3,8 +3,7 @@
     @testset "core.functions" begin
       ticker = "TSTS"
       i = 1:1:100
-      prp_func = (x)->0
-      A = asset(ticker, i, prp_func, 100, 10)
+      A = asset(ticker, i, 0.0, 0.0, 100, 10)
       B = Buy(A, 10)
       @test u_value(B) == 100
       @test value(B) == 100

@@ -79,14 +79,21 @@ function _resample(M::Market, stops::Vector{Int})
 end
 
 """
-    resample(M::Market, k::Int) -> Market
-    resample(M::Market, p::Dates.Period) -> Market
+    resample(M::Market, k::Int)
+    resample(M::Market, p::Dates.Period)
 
 New Market with bars aggregated `k`-to-1 (or grouped by calendar period, which requires a
 time axis): Open = first, High = max, Low = min, Volume = sum, everything else (Close,
-indicators) = last; NaN bars are skipped, all-NaN windows stay NaN. The last group may be
-short. Attached indicator generators are not carried over — re-apply indicators on the
-resampled market.
+indicators) = last. Attached indicator generators are not carried over — re-apply indicators
+on the resampled market.
+
+```jldoctest
+M=market([asset("AAPL")]);
+length(resample(M, 5))
+# output
+
+731
+```
 """
 function resample(M::Market, k::Int)
   k >= 1 || error("resample factor must be >= 1")

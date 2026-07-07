@@ -19,6 +19,15 @@ absent dataset name throws `KeyError`; name reads return concrete `Vector{Float6
 `fx` references the converting rate asset (wired by `set_fx!`); `fx_rate` is the current
 bar's conversion rate, refreshed by `advance_to!` so the accounting hot path is one
 branchless multiply (`1.0` for base-denominated assets — bit-identical single-currency).
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+A.currency
+# output
+
+:base
+```
 """
 mutable struct Asset
   ticker::String
@@ -52,23 +61,41 @@ mutable struct Asset
   end
 end
 
+"""
+    asset(ticker::String, data::AbstractMatrix{Float64}, data_id::Vector{String})
+    asset()
+    asset(ticker::String)
+    asset(ticker::String, interval::StepRange{Int,Int}, mu::Real, sigma::Real, base::Real=100, precision::Int=10)
+
+Build an asset. With a ticker, data, and data_id, wraps them directly. The other methods
+build one with synthetic OHLC data.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+A.ticker
+# output
+
+"BJSQ"
+```
+"""
 asset(ticker::String, data::AbstractMatrix{Float64}, data_id::Vector{String}) =
   Asset(ticker, data, data_id)
 
 function asset()
   ticker = randstring('A':'Z', 4)
-  ohlc, data_id = rand_ohlc(100, x -> rand() - 0.5, 1:5:3653, 10)
+  ohlc, data_id = rand_ohlc(100, 0.0, 0.02, 1:5:3653, 10)
   return Asset(ticker, ohlc, data_id)
 end
 
 function asset(ticker::String)
-  ohlc, data_id = rand_ohlc(100, x -> rand() - 0.5, 1:5:3653, 10)
+  ohlc, data_id = rand_ohlc(100, 0.0, 0.02, 1:5:3653, 10)
   return Asset(ticker, ohlc, data_id)
 end
 
-function asset(ticker::String, interval::StepRange{Int,Int}, prop_func::Function,
+function asset(ticker::String, interval::StepRange{Int,Int}, mu::Real, sigma::Real,
   base::Real=100, precision::Int=10)
-  ohlc, data_id = rand_ohlc(base, prop_func, interval, precision)
+  ohlc, data_id = rand_ohlc(base, mu, sigma, interval, precision)
   return Asset(ticker, ohlc, data_id)
 end
 
@@ -125,6 +152,24 @@ function Base.getindex(A::Asset, r::UnitRange{Int})
   return B
 end
 
+"""
+    names(A::Asset)
+
+Row names (dataset ids) on the asset, in row-index order.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+names(A)
+# output
+
+4-element Vector{String}:
+ "Open"
+ "High"
+ "Low"
+ "Close"
+```
+"""
 Base.names(A::Asset) = A.data_id
 
 function Base.setindex!(A::Asset, dp::DataPoint, key1::String)
@@ -152,16 +197,32 @@ function Base.setindex!(A::Asset, dp::DataPoint, key1::Int, ::Colon)
 end
 
 Base.length(A::Asset) = A.visible          # bars currently revealed (cursor)
+
+"""
+    height(A::Asset)
+
+Number of data rows (datasets) on the asset, e.g. 4 for plain OHLC.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+height(A)
+# output
+
+4
+```
+"""
 height(A::Asset) = size(A.data, 1)
 n_datasets(A::Asset) = height(A)
 Base.size(A::Asset) = (height(A), A.visible)
 
 """
-    rand_ohlc(base, f, interval, precision) -> (DataSeries, Vector{String})
+    rand_ohlc(base, mu, sigma, interval, precision) -> (DataSeries, Vector{String})
 
-Generate synthetic OHLC bars. Non-sampled bars are filled with NaN.
+Generate synthetic OHLC bars via Geometric Brownian Motion (drift `mu`, volatility `sigma`,
+both per intrabar substep). Non-sampled bars are filled with NaN.
 """
-function rand_ohlc(base::Number, f::Function, interval::StepRange{Int,Int}, precision::Int)
+function rand_ohlc(base::Number, mu::Real, sigma::Real, interval::StepRange{Int,Int}, precision::Int)
   full_interval = (interval.start):1:(interval.stop)
   data_id = ["Open", "High", "Low", "Close"]
   ohlc = fill(NaN, length(data_id), length(full_interval))
@@ -169,7 +230,7 @@ function rand_ohlc(base::Number, f::Function, interval::StepRange{Int,Int}, prec
   lst = base
   for i in full_interval
     rem(i - 1, step(interval)) !== 0 && continue
-    arr = random_value(lst, precision, f)
+    arr = gbm_path(lst, mu, sigma, precision)
     sortedarr = sort(arr)
     ohlc[1, i] = first(arr)
     ohlc[2, i] = last(sortedarr)
@@ -200,10 +261,25 @@ function calculate_indicator(Ind::IndicatorGenerator, asset::Asset, data_key::St
 end
 
 """
-    apply_indicator(Ind, asset, data_key, name)
+    apply_indicator(Ind::IndicatorGenerator, asset::Asset, data_key::String, name::String)
 
-Compute and attach a named indicator row to the asset.
-Must be called in `init`, not `next` (asset.data may be a view during backtest).
+Compute and attach a named indicator row to the asset. Must be called in `init`, not `next`.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+SMA10=IndicatorGenerator(simple_average, 10);
+apply_indicator(SMA10, A, "Close", "SMA10");
+names(A)
+# output
+
+5-element Vector{String}:
+ "Open"
+ "High"
+ "Low"
+ "Close"
+ "SMA10"
+```
 """
 function apply_indicator(Ind::IndicatorGenerator, asset::Asset,
   data_key::String, name::String)
@@ -218,10 +294,18 @@ function apply_indicator(Ind::IndicatorGenerator, asset::Asset,
 end
 
 """
-    value(A::Asset, data_key="Close")
+    value(A::Asset, data_key::String="Close")
 
 Current price: last non-NaN value in the named row.
-O(1) for clean CSV data (no NaN at end), O(n_gaps) for sparse synthetic data.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+value(A)
+# output
+
+9.455734786039033
+```
 """
 @inline value(A::Asset) = _value_at(A, A.close_idx > 0 ? A.close_idx : A._idx["Close"])
 @inline value(A::Asset, data_key::String) = _value_at(A, A._idx[data_key])
@@ -260,7 +344,17 @@ end
 """
     shorten!(A::Asset, u::UnitRange{Int})
 
-Trim asset data to the given column range (materializes views).
+Trim asset data to the given column range.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+shorten!(A, 1:10);
+size(A)
+# output
+
+(4, 10)
+```
 """
 function shorten!(A::Asset, u::UnitRange{Int})
   A.data = Matrix{Float64}(A.data[:, u])
@@ -272,6 +366,17 @@ end
     add_datapoint!(A::Asset, dp::DataPoint)
 
 Append a new bar (column) to the asset, recomputing indicator rows.
+
+```jldoctest
+Random.seed!(1);
+A=asset();
+shorten!(A, 1:10);
+add_datapoint!(A, [10.0, 11.0, 9.5, 10.5]);
+size(A)
+# output
+
+(4, 11)
+```
 """
 function add_datapoint!(A::Asset, dp::DataPoint)
   @assert length(dp) == height(A)

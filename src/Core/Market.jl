@@ -2,10 +2,17 @@
 """
     Market
 
-A collection of Assets keyed by ticker. `_length` caches the maximum bar count
-so `length(M)` is O(1) instead of scanning all assets every call. `axis` is an
-optional shared time axis: `axis[j]` labels bar `j` of every asset; `nothing`
-means bars are abstract integer indices. The engine never reads it per bar.
+A collection of Assets keyed by ticker. Carries an optional shared time axis: `axis[j]`
+labels bar `j` of every asset; `nothing` means bars are abstract integer indices.
+
+```jldoctest
+Random.seed!(1);
+M=market([asset(),asset()]);
+length(M.data)
+# output
+
+2
+```
 """
 mutable struct Market
   data::Dict{String,Asset}
@@ -52,10 +59,39 @@ Base.getindex(M::Market, i::Int) = values(M.data)[i]
 assets(M::Market) = values(M.data)
 
 Base.length(M::Market) = M._length       # O(1) — cached
+
+"""
+    height(M::Market)
+
+Number of assets in the market.
+
+```jldoctest
+Random.seed!(1);
+M=market([asset(),asset()]);
+height(M)
+# output
+
+2
+```
+"""
 height(M::Market) = length(M.data)
 Base.size(M::Market) = (height(M), length(M))
 Base.names(M::Market) = keys(M.data)
 
+"""
+    add_asset!(M::Market, A::Asset)
+
+Add or replace an asset in the market, keyed by its ticker.
+
+```jldoctest
+M=market();
+add_asset!(M, asset("AAPL"));
+length(M.data)
+# output
+
+1
+```
+"""
 function add_asset!(M::Market, A::Asset)
   if haskey(M.data, A.ticker)                     # replacing: keep the vector in sync, no dup
     old = M.data[A.ticker]
@@ -122,6 +158,21 @@ function Base.getindex(M::Market, r::UnitRange{Int})
   return _rewire_fx!(newM)
 end
 
+"""
+    shorten!(M::Market, U::UnitRange{Int})
+
+Trim every asset in the market to the given column range.
+
+```jldoctest
+Random.seed!(1);
+M=market([asset(),asset()]);
+shorten!(M, 1:10);
+length(M)
+# output
+
+10
+```
+"""
 function shorten!(M::Market, U::UnitRange{Int})
   for (_, v) in M.data
     shorten!(v, U)
@@ -150,11 +201,19 @@ function to_market(A::Asset)
 end
 
 """
-    advance_to!(M, i)
+    advance_to!(M::Market, i::Int)
 
-Reveal bars `1:i` of every asset by moving its `visible` cursor — O(N_assets) integer
-writes, **zero allocation**. Each asset already holds its full price matrix; advancing the
-cursor is what the backtest loop does once per bar (replaces the old SubArray view churn).
+Reveal bars `1:i` of every asset in the market — what the backtest loop does once per bar.
+
+```jldoctest
+Random.seed!(1);
+M=market([asset(),asset()]);
+advance_to!(M, 5);
+length(M)
+# output
+
+5
+```
 """
 @inline function advance_to!(M::Market, i::Int)
   max_len = 0
@@ -180,10 +239,22 @@ Back-compat shim for the old view-based API: advances `M` to reveal bars `1:last
 set_data_to!(M::Market, N::Market, u::UnitRange{Int}) = advance_to!(M, last(u))
 
 """
-    set_axis!(M::Market, axis::Vector{DateTime}) -> Market
+    set_axis!(M::Market, axis::Vector{DateTime})
 
 Attach a shared time axis: `axis[j]` labels bar `j` of every asset. Must be sorted and
 match the full data width of the market's widest asset.
+
+```jldoctest
+using Dates;
+Random.seed!(1);
+M=market([asset("AAPL")]);
+axis=DateTime(2000,1,1) .+ Day.(0:3650);
+set_axis!(M, axis);
+has_axis(M)
+# output
+
+true
+```
 """
 function set_axis!(M::Market, axis::Vector{DateTime})
   @assert issorted(axis) "axis must be sorted ascending"
@@ -194,15 +265,40 @@ function set_axis!(M::Market, axis::Vector{DateTime})
 end
 set_axis!(M::Market, axis::Vector{Date}) = set_axis!(M, DateTime.(axis))
 
+"""
+    has_axis(M::Market)
+
+Whether the market has a shared time axis attached.
+
+```jldoctest
+M=market([asset("AAPL")]);
+has_axis(M)
+# output
+
+false
+```
+"""
 has_axis(M::Market) = M.axis !== nothing
 
 """
-    set_fx!(M::Market, ccy::Symbol, fx_asset::Asset) -> Market
+    set_fx!(M::Market, ccy::Symbol, fx_asset::Asset)
 
 Register `fx_asset` as the conversion rate for assets priced in `ccy`. Its Close must be
-**base-currency units per 1 unit of `ccy`**. The rate asset joins the market (so its bar
-cursor advances with everything else) and every current and future asset with
-`currency == ccy` converts through it.
+**base-currency units per 1 unit of `ccy`**. The rate asset joins the market and every
+current and future asset with `currency == ccy` converts through it.
+
+```jldoctest
+Random.seed!(1);
+A=asset("AAPL");
+A.currency=:EUR;
+M=market([A]);
+fx=asset("EURUSD");
+set_fx!(M, :EUR, fx);
+length(M.data)
+# output
+
+2
+```
 """
 function set_fx!(M::Market, ccy::Symbol, fx_asset::Asset)
   haskey(M.data, fx_asset.ticker) || add_asset!(M, fx_asset)
@@ -211,9 +307,20 @@ function set_fx!(M::Market, ccy::Symbol, fx_asset::Asset)
 end
 
 """
-    timestamp(M::Market, i::Int) -> DateTime
+    timestamp(M::Market, i::Int)
 
 Timestamp of bar `i`. Errors when the market has no axis.
+
+```jldoctest
+using Dates;
+Random.seed!(1);
+M=market([asset("AAPL")]);
+set_axis!(M, DateTime(2000,1,1) .+ Day.(0:3650));
+timestamp(M, 1)
+# output
+
+2000-01-01T00:00:00
+```
 """
 function timestamp(M::Market, i::Int)
   M.axis === nothing && error("Market has no time axis; see set_axis!")
@@ -221,10 +328,21 @@ function timestamp(M::Market, i::Int)
 end
 
 """
-    bar_of(M::Market, t) -> Int
+    bar_of(M::Market, t::DateTime)
 
 Index of the last bar at or before `t` (0 if `t` precedes the axis). Errors when the
 market has no axis.
+
+```jldoctest
+using Dates;
+Random.seed!(1);
+M=market([asset("AAPL")]);
+set_axis!(M, DateTime(2000,1,1) .+ Day.(0:3650));
+bar_of(M, DateTime(2000,1,10))
+# output
+
+10
+```
 """
 function bar_of(M::Market, t::DateTime)
   M.axis === nothing && error("Market has no time axis; see set_axis!")
@@ -233,17 +351,37 @@ end
 bar_of(M::Market, t::Date) = bar_of(M, DateTime(t))
 
 """
-    asset_names(M::Market) -> Vector{String}
+    asset_names(M::Market)
 
 Sorted ticker names — stable ordering for cross-sectional matrix rows.
+
+```jldoctest
+Random.seed!(1);
+M=market([asset("BBB"), asset("AAA")]);
+asset_names(M)
+# output
+
+2-element Vector{String}:
+ "AAA"
+ "BBB"
+```
 """
 asset_names(M::Market) = sort(collect(keys(M.data)))
 
 """
-    returns_matrix(M, window; key="Close") -> Matrix{Float64}
+    returns_matrix(M::Market, window::UnitRange{Int}; key::String="Close")
 
 `[N × (T-1)]` log-return matrix. Rows = assets (alpha order), cols = bars.
 NaN/zero prices fill the corresponding column with 0.0.
+
+```jldoctest
+Random.seed!(1);
+M=market([asset("AAPL")]);
+size(returns_matrix(M, 1:5))
+# output
+
+(1, 4)
+```
 """
 function returns_matrix(M::Market, window::UnitRange{Int}; key::String="Close")
   nms = asset_names(M)
@@ -273,9 +411,18 @@ returns_matrix(M::Market; key::String="Close") =
   returns_matrix(M, 1:length(M); key=key)
 
 """
-    trim_to_length(M, n) -> Market
+    trim_to_length(M::Market, n::Int)
 
 New Market where every asset is trimmed to its last `n` bars.
+
+```jldoctest
+Random.seed!(1);
+M=market([asset("AAPL")]);
+length(trim_to_length(M, 10))
+# output
+
+10
+```
 """
 function trim_to_length(M::Market, n::Int)
   M2 = market(Asset[])
