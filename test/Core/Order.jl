@@ -1,3 +1,5 @@
+using Orcus: fulfill
+
 @testset "Order" begin
   A=asset();
   B=Buy(A, 10);

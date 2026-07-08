@@ -3,7 +3,7 @@
     OrderKind
 
 Abstract type for order trigger semantics. A concrete `OrderKind` determines whether/at what
-price an `Order` fills on a given bar via [`check_trigger`](@ref).
+price an `Order` fills on a given bar via `check_trigger`.
 """
 abstract type OrderKind end
 
@@ -218,7 +218,7 @@ Random.seed!(1234);
 A=asset();
 B=Buy(A,10);
 O=Order(B,10);
-fulfill(O,100)
+Orcus.fulfill(O,100)
 # output
 
 788.771178523604
@@ -262,7 +262,7 @@ Not defined for other derivative types (options etc.) — limit/stop orders on t
 Random.seed!(1);
 A=asset();
 O=Order(Buy(A,10));
-check_trigger(O, nothing, 1)
+Orcus.check_trigger(O, nothing, 1)
 # output
 
 (true, 19.45573478603903)

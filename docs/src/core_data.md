@@ -23,9 +23,11 @@ asset
 names
 rowindex
 height
-value
+value(A::Asset)
 apply_indicator
 calculate_indicator
+IndicatorGenerator
+simple_average
 shorten!
 add_datapoint!
 ```
@@ -46,6 +48,20 @@ GOOG
 AAPL
 ```
 
+## Synthetic data
+
+Lower-level building blocks behind `rand_ohlc`, useful for stitching together custom
+price paths (e.g. calm → crash → recovery regimes) for strategy stress-testing.
+
+```@docs
+DataPoint
+DataSeries
+data_series
+gbm_path
+gbm_path_segments
+gbm_step
+```
+
 ## Market
 
 The `Market` type is a collection of `Asset`s. It allows you to manage multiple assets and their data in a single structure.
@@ -60,6 +76,20 @@ shorten!(M::Market, U::UnitRange{Int})
 asset_names
 returns_matrix
 trim_to_length(M::Market, n::Int)
+set_fx!
+```
+
+## Time axis
+
+An optional shared `Market.axis::Vector{DateTime}` labels bars for loaders, collectors,
+and annualization; the engine clock itself stays an integer bar index and never reads it.
+
+```@docs
+set_axis!
+timestamp
+bar_of
+has_axis
+resample
 ```
 
 # Index

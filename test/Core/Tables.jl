@@ -1,3 +1,5 @@
+using Orcus: process_order!
+
 @testset verbose=false "Tables" begin
   @testset verbose=false "core" begin
     Random.seed!(1234);

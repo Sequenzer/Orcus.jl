@@ -162,7 +162,7 @@ end
     execute!(B::Broker, O::Order, date::Int=length(B); strict::Bool=false)
 
 The single fill path used by every order-processing function. Checks whether `O` triggers on
-`date` via [`check_trigger`](@ref) — market orders always do, limit/stop orders only when the
+`date` via `check_trigger` — market orders always do, limit/stop orders only when the
 bar's range reaches their trigger price. On trigger, resolves how much cash this fill actually
 needs:
 
@@ -278,7 +278,7 @@ B = broker(3,1000);
 A = B.market.assets[2]
 O = Order(Buy(A,10))
 place_order!(B,O)
-process_order!(B,O)
+Orcus.process_order!(B,O)
 length(B.history)
 # output
 
@@ -325,7 +325,7 @@ B = broker(3,1000);
 A = B.market.assets[2]
 O = Order(Sell(A,10))
 place_order!(B,O)
-process_order!(B,O)
+Orcus.process_order!(B,O)
 request_to_close_all!(B)
 resolve_portfolio!(B)
 length(B.history)
@@ -550,7 +550,7 @@ B=broker(3,1000);
 A=B.market.assets[2];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 request_to_close_all!(B);
 resolve_portfolio!(B);
 length(B.history)
@@ -577,7 +577,7 @@ ticker=B.market.assets[2].ticker;
 A=B.market.data[ticker];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 request_to_close!(B, ticker);
 resolve_portfolio!(B);
 length(B.history)
@@ -604,7 +604,7 @@ ticker=B.market.assets[2].ticker;
 A=B.market.data[ticker];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 has_position(B, ticker)
 # output
 
@@ -625,7 +625,7 @@ ticker=B.market.assets[2].ticker;
 A=B.market.data[ticker];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 position_direction(B, ticker)
 # output
 
@@ -652,7 +652,7 @@ B=broker(3,1000);
 A=B.market.assets[2];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 realized_pnl(B)
 # output
 

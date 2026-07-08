@@ -68,7 +68,7 @@ B=broker(3,1000);
 A=B.market.assets[2];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 total_value(B.portfolio)
 # output
 
@@ -111,7 +111,7 @@ B=broker(3,1000);
 A=B.market.assets[2];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 total_loan(B.portfolio)
 # output
 
@@ -320,7 +320,7 @@ ticker=B.market.assets[2].ticker;
 A=B.market.data[ticker];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 has_position(B.portfolio, ticker)
 # output
 
@@ -353,7 +353,7 @@ ticker=B.market.assets[2].ticker;
 A=B.market.data[ticker];
 O=Order(Buy(A,10));
 place_order!(B,O);
-process_order!(B,O);
+Orcus.process_order!(B,O);
 position_direction(B.portfolio, ticker)
 # output
 

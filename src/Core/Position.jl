@@ -20,7 +20,7 @@ source of truth and already reflects fees via the cash ledger.
 Random.seed!(1);
 A = asset()
 P = Position(Buy(A, 0))
-apply_trade!(P, 10.0, value(A), 0.0)   # open 10 @ spot
+Orcus.apply_trade!(P, 10.0, value(A), 0.0)   # open 10 @ spot
 is_closed(P)
 # output
 
@@ -66,7 +66,7 @@ The position's signed net quantity.
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 volume(P)
 # output
 
@@ -84,7 +84,7 @@ Current mark-to-market value of the position, in the broker's base currency.
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 value(P)
 # output
 
@@ -103,7 +103,7 @@ Current value of the position in the underlying's own price units, before fx con
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 u_value(P)
 # output
 
@@ -121,7 +121,7 @@ Cost basis of the position (`net_qty * avg_cost`).
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 price(P)
 # output
 
@@ -139,7 +139,7 @@ Unrealized P&L: current value minus cost basis.
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 abs_return(P)
 # output
 
@@ -157,7 +157,7 @@ Unrealized P&L as a fraction of the cost basis (`0.0` if the cost basis is `0.0`
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 pct_return(P)
 # output
 
@@ -175,7 +175,7 @@ Log return of current value over cost basis (`-Inf` if the value is non-positive
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 log_return(P)
 # output
 
@@ -193,7 +193,7 @@ Realized trading P&L on the position, net of commissions and slippage.
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 realized_pnl(P)
 # output
 
@@ -230,7 +230,7 @@ cost basis on same-direction fills or realizing P&L on reducing/closing/flipping
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
+Orcus.apply_trade!(P, 10.0, value(A), 0.0);
 P.net_qty
 # output
 
@@ -275,7 +275,7 @@ Set the position's close flag. Use the broker API
 Random.seed!(1);
 A=asset();
 P=Position(Buy(A,0));
-request_to_close(P);
+Orcus.request_to_close(P);
 P.requestToClose
 # output
 

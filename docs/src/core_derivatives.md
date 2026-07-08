@@ -13,6 +13,7 @@ We model them via some `payoff` function that takes the underlying asset's price
 
 ```@docs
 Derivative
+InstrumentKey
 @generate_derivative
 Buy
 Sell

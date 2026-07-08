@@ -13,6 +13,7 @@ makedocs(
   sitename="Orcus.jl",
   modules=[Orcus],
   format=Documenter.HTML(prettyurls=get(ENV, "CI", nothing) == "true"),
+  checkdocs=:exports,
   warnonly=[:missing_docs, :doctest],
   pages=[
     "Home" => "index.md",

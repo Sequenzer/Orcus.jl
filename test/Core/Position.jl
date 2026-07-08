@@ -1,3 +1,5 @@
+using Orcus: apply_trade!, request_to_close
+
 @testset verbose=false "Position" begin
   @testset verbose=false "core" begin
     @testset "construct + flags" begin

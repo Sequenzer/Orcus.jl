@@ -1,3 +1,5 @@
+using Orcus: check_trigger, process_order!
+
 @testset verbose=false "Broker" begin
   @testset verbose=false "core" begin
     Random.seed!(1234);
