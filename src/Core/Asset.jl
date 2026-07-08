@@ -8,17 +8,13 @@ A single instrument's price/indicator data.
 
 `data` is an `AbstractMatrix{Float64}` with shape `[n_datasets × n_bars]`.
 During a backtest the broker's assets hold a SubArray view into the base market
-data — zero-copy bar advancement. Outside the loop (and after `copy`) it is
-always a concrete `Matrix{Float64}`.
+data.
+Outside the loop it is always a concrete `Matrix{Float64}`.
 
-NaN is used as the sentinel for missing/gap bars — no Union boxing. Indexing by an
-absent dataset name throws `KeyError`; name reads return concrete `Vector{Float64}`
-(window slice) or `Float64` (scalar).
+NaN is used as the sentinel for missing/gap bars.
 
 `currency` labels the asset's price units; `:base` means the broker's base currency.
-`fx` references the converting rate asset (wired by `set_fx!`); `fx_rate` is the current
-bar's conversion rate, refreshed by `advance_to!` so the accounting hot path is one
-branchless multiply (`1.0` for base-denominated assets — bit-identical single-currency).
+`fx` references the converting rate asset (wired by `set_fx!`), and `fx_rate` is the last known rate from that asset's visible window.
 
 ```jldoctest
 Random.seed!(1);
@@ -63,9 +59,9 @@ end
 
 """
     asset(ticker::String, data::AbstractMatrix{Float64}, data_id::Vector{String})
-    asset()
-    asset(ticker::String)
     asset(ticker::String, interval::StepRange{Int,Int}, mu::Real, sigma::Real, base::Real=100, precision::Int=10)
+    asset(ticker::String)
+    asset()
 
 Build an asset. With a ticker, data, and data_id, wraps them directly. The other methods
 build one with synthetic OHLC data.
@@ -245,7 +241,6 @@ end
     calculate_indicator(Ind, asset, data_key)
 
 Compute an indicator series over the asset's named column.
-NaN bars in the source propagate as NaN in the output.
 """
 function calculate_indicator(Ind::IndicatorGenerator, asset::Asset, data_key::String)
   @assert haskey(asset._idx, data_key)

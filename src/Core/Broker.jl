@@ -126,10 +126,8 @@ end
 
 Largest `|qty|`-capped signed quantity (same sign as `qty`) whose `margin_pct` fraction of
 notional plus transaction cost fits within `cash`, at `fill_price` per unit. `margin_pct=1.0`
-(the default) reproduces the pre-margin behavior exactly — full notional required. Assumes
-cost scales linearly with `|notional|` — true for `NoCost` and `FlatCost`, the only cost
-models this package ships. A custom non-linear `CostModel` is out of scope for partial-fill
-sizing.
+(the default) reproduces the pre-margin behavior exactly. Assumes
+cost scales linearly with `|notional|`.
 """
 function affordable_quantity(
   cm::CostModel, fill_price::Real, qty::Real, cash::Real; margin_pct::Real=1.0
@@ -368,8 +366,7 @@ end
 """
     close_position!(B::Broker, key, P::Position, date::Int)
 
-Liquidate the whole of position `P` at its current market value. Internal close-out helper
-used by [`resolve_portfolio!`](@ref).
+Liquidate the whole of position `P` at its current market value.
 """
 function close_position!(
   B::Broker, key::InstrumentKey, P::Position{D}, date::Int
@@ -642,8 +639,7 @@ position_direction(B::Broker, ticker::String) = position_direction(B.portfolio, 
 
 Total unrealized P&L (mark minus cost basis) across all currently open positions.
 """
-unrealized_pnl(B::Broker) =
-  sum(abs_return(P) for P in values(B.portfolio); init=0.0)
+unrealized_pnl(B::Broker) = sum(abs_return(P) for P in values(B.portfolio); init=0.0)
 
 """
     realized_pnl(B::Broker)
@@ -663,8 +659,7 @@ realized_pnl(B)
 0.0
 ```
 """
-realized_pnl(B::Broker) =
-  sum(realized_pnl(P) for P in values(B.portfolio); init=0.0)
+realized_pnl(B::Broker) = sum(realized_pnl(P) for P in values(B.portfolio); init=0.0)
 
 """
     length(B::Broker)
@@ -708,7 +703,7 @@ end
 
 Convert a Broker to an Asset
 
-```jldoctest
+```julia
 Random.seed!(1234);
 x=asset();
 y=asset();

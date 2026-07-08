@@ -41,6 +41,23 @@ mutable struct Market
   )
 end
 
+"""
+    market(assets::Vector{Asset})
+    market(asset::Asset)
+    market(n_Assets::Int)
+    market()
+Construct a new Market from the given assets, a single asset, or an empty market. The
+`n_Assets` constructor creates `n_Assets` random assets with default parameters.
+
+```jldoctest
+Random.seed!(1);
+M=market([asset(),asset()]);
+length(M.data)
+# output
+
+2
+```
+"""
 market(assets::Vector{Asset}) = Market(assets)
 market() = market(Asset[])
 market(asset::Asset) = market([asset])
@@ -108,8 +125,6 @@ function add_asset!(M::Market, A::Asset)
   return M
 end
 
-# Re-derive all fx wiring (asset `fx` refs, current rates, and the hot-path pair list) from
-# the registry. Cold path — called on any wiring or membership change, never per bar.
 function _rebuild_fx_wiring!(M::Market)
   empty!(M.fx_wired)
   for (ccy, tk) in M.fx_registry
@@ -136,9 +151,6 @@ Base.getindex(M::Market, key2::Int, ::Colon) = to_asset(M)[key2, :]
 Base.getindex(M::Market, key1::Int, key2::Int) = to_asset(M)[key1, key2]
 Base.getindex(M::Market, ::Colon, key2::Int) = to_asset(M)[:, key2]
 
-# Repoint every asset's cached fx reference at THIS market's rate assets. Required after
-# any operation that copies/rebuilds assets: a stale reference into the source market means
-# another thread's `advance_to!` moves the rate under us (see the batch isolation model).
 _rewire_fx!(M::Market) = _rebuild_fx_wiring!(M)
 
 function Base.copy(M::Market)
@@ -407,8 +419,7 @@ function returns_matrix(M::Market, window::UnitRange{Int}; key::String="Close")
   return R
 end
 
-returns_matrix(M::Market; key::String="Close") =
-  returns_matrix(M, 1:length(M); key=key)
+returns_matrix(M::Market; key::String="Close") = returns_matrix(M, 1:length(M); key=key)
 
 """
     trim_to_length(M::Market, n::Int)

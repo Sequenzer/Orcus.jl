@@ -144,6 +144,7 @@ export
   transaction_cost,
   trim_to_length,
   turnover_table,
+  unrealized_pnl,
   u_value,
   ulcer_index,
   value,

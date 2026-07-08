@@ -18,11 +18,6 @@ function load_stock(name::String)
   return load_csv(joinpath(_STOCKS_DATA_DIR, "$(name).csv"); ticker=name)
 end
 
-# Minimal reader for CSVs: a header row of column names followed by comma-separated rows.
-# `date_col` is parsed as `Date`, every other column as `Float64`. Returns a `NamedTuple` of
-# columns so downstream code can use `nt[:date]`, `propertynames(nt)`, and `hasproperty`.
-# Avoids a CSV.jl dependency; it is not a general-purpose CSV parser (no quoting, no embedded
-# commas).
 function read_stock_csv(path::String; date_col::Symbol=:date)
   lines = readlines(path)
   isempty(lines) && error("empty CSV file: $path")
@@ -43,9 +38,6 @@ function read_stock_csv(path::String; date_col::Symbol=:date)
   return NamedTuple{Tuple(header)}(Tuple(parsed))
 end
 
-# Renames `nt`'s date column to :date and every other column per `columns` (source name →
-# canonical name), so downstream code (`asset(::NamedTuple, ...)`) can rely on `:date` and
-# arbitrary canonical names regardless of the source CSV's header spelling.
 function _rename_columns(nt::NamedTuple, date::Symbol, columns::Dict{Symbol,Symbol})
   names = Symbol[:date]
   vals = Any[nt[date]]
@@ -113,16 +105,15 @@ length(available_stocks())
 34
 ```
 """
-available_stocks() = sort([splitext(f)[1]
-      for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
+available_stocks() = sort([splitext(f)[1] for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
 
 """
     load_csvs(paths::Vector{String}; tickers::Vector{String}=[splitext(basename(p))[1] for p in paths], date::Symbol=:date, columns::Dict{Symbol,Symbol}=Dict{Symbol,Symbol}())
 
-Load multiple OHLC CSVs from arbitrary file paths onto a shared bar grid — the sorted union of
-all trading dates — and attach it as the market's time axis. Dates missing for a ticker are NaN
-bars. `tickers` defaults to each path's filename stem; `date`/`columns` are shared across all
-paths (see [`load_csv`](@ref)).
+Load multiple OHLC CSVs from arbitrary file paths onto a shared bar grid and
+attach it as the market's time axis. Dates missing for a ticker are NaN bars.
+`tickers` defaults to each path's filename stem; `date`/`columns` are shared
+across all paths (see [`load_csv`](@ref)).
 
 ```jldoctest
 dir=joinpath(pkgdir(Orcus), "src", "Lib", "data");
@@ -158,9 +149,9 @@ end
 """
     load_stocks(names::Vector{String})
 
-Load multiple stocks onto a shared bar grid — the sorted union of all trading dates —
-and attach it as the market's time axis. Dates missing for a ticker are NaN bars.
-All tickers must exist in the data directory (see [`available_stocks`](@ref)).
+Load multiple stocks onto a shared bar grid and attach it as the market's time
+axis. Dates missing for a ticker are NaN bars. All tickers must exist in the
+data directory (see [`available_stocks`](@ref)).
 
 ```jldoctest
 M=load_stocks(["AAPL","GOOG"]);

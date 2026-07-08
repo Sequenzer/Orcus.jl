@@ -42,9 +42,9 @@ In this function, we check if the 10-day SMA has crossed above the 20-day SMA. I
 
 ```julia
 function cross_next(s::Strategy)
-  a = s.market.data[GOOG]  # Access the data for GOOG
+  a = s.market.data["GOOG"]  # Access the data for GOOG
   n = length(a)
-  n < 2 && continue  # Not enough data to check for crossover
+  n < 2 && return  # Not enough data to check for crossover
 
   crossed_up = a["SMA10", n] > a["SMA20", n] && a["SMA10", n-1] <= a["SMA20", n-1]
 

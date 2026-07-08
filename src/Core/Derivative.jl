@@ -242,6 +242,7 @@ end
     @generate_derivative(Name::Symbol, structure::Expr, price_func::Expr)
 
 Macro to generate a new derivative type.
+Takes a name, a structure function (for the payoff), and a price function.
 
 
 # Examples
