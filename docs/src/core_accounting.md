@@ -1,6 +1,9 @@
 # Orders & accounting
 
-<!-- TODO: explain order/fill/accounting path, Position netting, CostModel/MarginModel -->
+Orders fill deterministically FIFO in `execute!`, updating netted `Position`s (signed
+`net_qty`, weighted-average `avg_cost`, `realized_pnl`) through the `Broker`; rejected
+orders are recorded separately rather than silently dropped, and a `CostModel`/`MarginModel`
+is applied at the fill boundary.
 
 ## Broker and Order processing
 

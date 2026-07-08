@@ -6,7 +6,10 @@ CollapsedDocStrings = true
 
 # Market data
 
-<!-- TODO: explain Asset/Market data model and zero-copy bar advancement -->
+`Asset` and `Market` are the price-data containers: an `Asset` holds one instrument's OHLC
+history plus any attached indicators, a `Market` collects several assets, and `advance_to!`
+moves the shared bar cursor by re-slicing each asset's visible window as a `SubArray` — no
+copy per bar.
 
 ## Asset
 

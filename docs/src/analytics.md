@@ -1,6 +1,8 @@
 # Analytics
 
-<!-- TODO: explain PCA factor models, rolling stats, performance metrics, indicators, options -->
+Rolling PCA factor models (residual/zscore/multi), rolling statistics, performance metrics
+(Sharpe/Sortino/Calmar/VaR/CVaR/omega/ulcer/information-ratio), technical indicators, and
+options payoff helpers.
 
 ```@autodocs
 Modules = [Orcus]

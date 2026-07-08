@@ -16,6 +16,8 @@ makedocs(
   warnonly=[:missing_docs, :doctest],
   pages=[
     "Home" => "index.md",
+    "Tutorial" => "tutorial.md",
+    "Examples" => "examples.md",
     "Core" => [
       "Market data" => "core_data.md",
       "Orders & accounting" => "core_accounting.md",

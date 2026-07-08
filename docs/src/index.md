@@ -11,58 +11,21 @@ As it is with many backtesting frameworks, it will probably not be a perfect fit
 
 ## Getting started
 
-The best way to get started is to read the [tutorial](tutorial.md) and then dive into the [examples](examples.md). The examples are a good way to see how to use Orcus in practice.
-But if you want to get started without much reading, lets look at a simple example of a moving average crossover strategy.
+The best way to get started is to read the [tutorial](tutorial.md), which builds a simple
+SMA-crossover strategy end to end, and then dive into the [examples](examples.md) for more
+elaborate strategies and order-book mechanics.
 
-The core functionality of Orcus is the '@generate_strategy' macro, which allows you to define a strategy in a simple and intuitive way.
-Strategies are defined as two functions: `init` and `next`.
-The `init` function is run once at the beginning of the backtest, and the `next` function is run once per bar (i.e., for each time step in the backtest).
+## Reference
 
-First of all lets start up Orcus and load some sample data.
-
-```julia
-using Orcus
-
-M = market([GOOG])          # creating a market object with singular GOOG ticker
-```
-
-We now define two simple indicators, a 10-day and a 20-day simple moving average (SMA). The `init` function is used to apply these indicators to the market data.
-
-```julia
-function cross_init(s::Strategy)
-  for (_, a) in s.market.data
-    apply_indicator(IndicatorGenerator(simple_average, 10), a, "Close", "SMA10")
-    apply_indicator(IndicatorGenerator(simple_average, 20), a, "Close", "SMA20")
-  end
-end
-```
-
-Next lets define the `next` function, which will be called for each bar in the backtest. 
-In this function, we check if the 10-day SMA has crossed above the 20-day SMA. If it has, we close any existing positions and place a new buy order for 5 shares of GOOG.
-
-```julia
-function cross_next(s::Strategy)
-  a = s.market.data["GOOG"]  # Access the data for GOOG
-  n = length(a)
-  n < 2 && return  # Not enough data to check for crossover
-
-  crossed_up = a["SMA10", n] > a["SMA20", n] && a["SMA10", n-1] <= a["SMA20", n-1]
-
-  if crossed_up
-    request_to_close_all!(s.broker)
-    place_order!(s.broker, Order(Buy(a, 5)))
-  end
-end
-```
-
-What is left todo is to register the strategy with the `@generate_strategy` macro, create a backtest object, and run the backtest.
-
-```julia
-@generate_strategy SMAcrossover cross_next cross_init
-
-bt = Backtest(M, SMAcrossover, 10_000)   # 10k starting cash
-run_test(bt)
-```
-
-<!-- TODO: short description of Core/[Market data](@ref)/[Orders & accounting](@ref)/
-[Derivatives](@ref)/[Strategy authoring](@ref)/[Backtesting](@ref)/[Lib](@ref)/[Analytics](@ref) -->
+- [Market data](@ref) — `Asset`/`Market` price-data containers, sample-data loaders, and
+  zero-copy bar advancement.
+- [Orders & accounting](@ref) — the `Broker`, order/fill processing, and position/P&L
+  accounting.
+- [Derivatives](@ref) — `Buy`/`Sell`/option types and the `payoff` dispatch that prices
+  them.
+- [Strategy authoring](@ref) — the `init`/`next` model and `@generate_strategy`.
+- [Backtesting](@ref) — `Backtest`/`run_test`, `batch_backtest` sweeps, and the Tables.jl
+  output collectors.
+- [Lib](@ref) — bundled sample tickers/loaders and the example `CrossOverStrategy`.
+- [Analytics](@ref) — PCA factor models, rolling stats, performance metrics, indicators,
+  and options.
