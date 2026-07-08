@@ -1,221 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Orders &amp; accounting · Orcus.jl</title><meta name="title" content="Orders &amp; accounting · Orcus.jl"/><meta property="og:title" content="Orders &amp; accounting · Orcus.jl"/><meta property="twitter:title" content="Orders &amp; accounting · Orcus.jl"/><meta name="description" content="Documentation for Orcus.jl."/><meta property="og:description" content="Documentation for Orcus.jl."/><meta property="twitter:description" content="Documentation for Orcus.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.svg" alt="Orcus.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">Orcus.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">Core</span><ul><li><a class="tocitem" href="../core_data/">Market data</a></li><li class="is-active"><a class="tocitem" href>Orders &amp; accounting</a></li><li><a class="tocitem" href="../core_derivatives/">Derivatives</a></li><li><a class="tocitem" href="../core_strategy/">Strategy authoring</a></li><li><a class="tocitem" href="../core_backtest/">Backtesting</a></li></ul></li><li><a class="tocitem" href="../lib/">Lib</a></li><li><a class="tocitem" href="../analytics/">Analytics</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Core</a></li><li class="is-active"><a href>Orders &amp; accounting</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Orders &amp; accounting</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/Sequenzer/Orcus.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/Sequenzer/Orcus.jl/blob/main/docs/src/core_accounting.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Orders-and-accounting"><a class="docs-heading-anchor" href="#Orders-and-accounting">Orders &amp; accounting</a><a id="Orders-and-accounting-1"></a><a class="docs-heading-anchor-permalink" href="#Orders-and-accounting" title="Permalink"></a></h1><p>&lt;!– TODO: explain order/fill/accounting path, Position netting, CostModel/MarginModel –&gt;</p><article><details class="docstring" open="true"><summary id="Orcus.Limit"><a class="docstring-binding" href="#Orcus.Limit"><code>Orcus.Limit</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Limit(price::Real)</code></pre><p>Resting order that only fills once the bar&#39;s range reaches a price at least as good as <code>price</code> (in the underlying asset&#39;s own price units). Fills at the better of the bar&#39;s open and <code>price</code>.</p><pre><code class="language-julia hljs">Limit(100.0)
-# output
-
-Limit(100.0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L25-L37">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.MarketOrder"><a class="docstring-binding" href="#Orcus.MarketOrder"><code>Orcus.MarketOrder</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">MarketOrder()</code></pre><p>Fills unconditionally at <code>price(order.derivative)</code> — the default, unchanged since before order kinds existed.</p><pre><code class="language-julia hljs">MarketOrder()
-# output
-
-MarketOrder()</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L10-L22">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.Order"><a class="docstring-binding" href="#Orcus.Order"><code>Orcus.Order</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Order(derivative::Derivative, volume::Real=1, kind::OrderKind=MarketOrder(); allow_partial::Bool=false)</code></pre><p>An order to buy or sell a derivative, not yet fulfilled. <code>volume</code> is the original requested quantity and is never mutated; <code>remaining</code> tracks the unfilled quantity as partial fills occur.</p><pre><code class="language-julia hljs">A=asset();
-B=Buy(A,10);
-O=order(B);
-O.fulfilled
-# output
-
-false</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L62-L77">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.OrderKind"><a class="docstring-binding" href="#Orcus.OrderKind"><code>Orcus.OrderKind</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">OrderKind</code></pre><p>Abstract type for order trigger semantics. A concrete <code>OrderKind</code> determines whether/at what price an <code>Order</code> fills on a given bar via <a href="#Orcus.check_trigger-Union{Tuple{D}, Tuple{Order{D, MarketOrder}, Any, Int64}} where D&lt;:Derivative"><code>check_trigger</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L2-L7">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.Stop"><a class="docstring-binding" href="#Orcus.Stop"><code>Orcus.Stop</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Stop(price::Real)</code></pre><p>Resting order that fills once the bar&#39;s range breaches <code>price</code> (in the underlying asset&#39;s own price units) — the mirror image of <a href="#Orcus.Limit"><code>Limit</code></a>. Fills at the worse of the bar&#39;s open and <code>price</code>.</p><pre><code class="language-julia hljs">Stop(95.0)
-# output
-
-Stop(95.0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L43-L56">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.check_trigger-Union{Tuple{D}, Tuple{Order{D, MarketOrder}, Any, Int64}} where D&lt;:Derivative"><a class="docstring-binding" href="#Orcus.check_trigger-Union{Tuple{D}, Tuple{Order{D, MarketOrder}, Any, Int64}} where D&lt;:Derivative"><code>Orcus.check_trigger</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">check_trigger(O::Order, B, date::Int)</code></pre><p>Whether <code>O</code> fills on bar <code>date</code>, and at what price, as <code>(triggered, fill_price)</code>. <code>MarketOrder</code>s always trigger at <code>price(O.derivative)</code>. <code>Limit</code>/<code>Stop</code> orders on <code>Buy</code>/<code>Sell</code> derivatives trigger against the underlying asset&#39;s Open/High/Low for <code>date</code>.</p><p>Not defined for other derivative types (options etc.) — limit/stop orders on them raise <code>MethodError</code> rather than behaving silently wrong.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-O=Order(Buy(A,10));
-check_trigger(O, nothing, 1)
-# output
-
-(true, 19.45573478603903)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L251-L270">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.fulfill"><a class="docstring-binding" href="#Orcus.fulfill"><code>Orcus.fulfill</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">fulfill(order::Order, date::Int=length(order.derivative.underlying))</code></pre><p>Fulfill an order, returns its price.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-A=asset();
-B=Buy(A,10);
-O=Order(B,10);
-fulfill(O,100)
-# output
-
-788.771178523604</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L211-L226">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.isfulfilled-Tuple{Order}"><a class="docstring-binding" href="#Orcus.isfulfilled-Tuple{Order}"><code>Orcus.isfulfilled</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">isfulfilled(order::Order)</code></pre><p>Returns true if the Order has been fulfilled.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-A=asset();
-B=Buy(A,10);
-O=Order(B,10);
-isfulfilled(O)
-# output
-
-false</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L233-L248">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.limit_order-Tuple{Derivative, Real, Real}"><a class="docstring-binding" href="#Orcus.limit_order-Tuple{Derivative, Real, Real}"><code>Orcus.limit_order</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">limit_order(derivative::Derivative, volume::Real, price::Real; allow_partial::Bool=false)</code></pre><p>Convenience constructor for an <code>Order</code> with a <a href="#Orcus.Limit"><code>Limit</code></a> kind.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-limit_order(Buy(A,10), 10, 95.0).kind
-# output
-
-Limit(95.0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L123-L136">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.order"><a class="docstring-binding" href="#Orcus.order"><code>Orcus.order</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">order(derivative::Derivative, volume::Real=1, kind::OrderKind=MarketOrder(); allow_partial::Bool=false)</code></pre><p>Convenience constructor for an <code>Order</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-order(Buy(A,10)).fulfilled
-# output
-
-false</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L101-L114">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.price-Tuple{Order}"><a class="docstring-binding" href="#Orcus.price-Tuple{Order}"><code>Orcus.price</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">price(order::Order)</code></pre><p>The price of a placed order, can be negative.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-A=asset();
-B=Buy(A,10);
-O=order(B,10);
-price(O)
-# output
-
-788.771178523604</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L193-L208">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.remaining-Tuple{Order}"><a class="docstring-binding" href="#Orcus.remaining-Tuple{Order}"><code>Orcus.remaining</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">remaining(order::Order)</code></pre><p>Signed quantity still unfilled on <code>order</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-remaining(order(Buy(A,10)))
-# output
-
-1.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L177-L190">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.stop_order-Tuple{Derivative, Real, Real}"><a class="docstring-binding" href="#Orcus.stop_order-Tuple{Derivative, Real, Real}"><code>Orcus.stop_order</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">stop_order(derivative::Derivative, volume::Real, price::Real; allow_partial::Bool=false)</code></pre><p>Convenience constructor for an <code>Order</code> with a <a href="#Orcus.Stop"><code>Stop</code></a> kind.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-stop_order(Buy(A,10), 10, 95.0).kind
-# output
-
-Stop(95.0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L140-L153">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.volume-Tuple{Order}"><a class="docstring-binding" href="#Orcus.volume-Tuple{Order}"><code>Orcus.volume</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">volume(order::Order)</code></pre><p>The order&#39;s original requested quantity (never mutated as fills occur).</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-volume(order(Buy(A,10), 5))
-# output
-
-5.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Order.jl#L161-L174">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.Trade"><a class="docstring-binding" href="#Orcus.Trade"><code>Orcus.Trade</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Trade(O::Order{D,K}, date::Int=length(O.derivative.underlying)) where {D&lt;:Derivative,K&lt;:OrderKind}
-Trade(derivative::D, volume::Real, date::Int, delta_cash::Real=0.0) where {D&lt;:Derivative}</code></pre><p>A recorded fill: the derivative traded, signed volume, bar date, and net cash impact.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-A = asset();
-B = Buy(A, 10);
-O = order(B, 100);
-T = Trade(O);
-value(T)
-# output
-
-6887.71178523604</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Trade.jl#L1-L18">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.price-Tuple{Trade}"><a class="docstring-binding" href="#Orcus.price-Tuple{Trade}"><code>Orcus.price</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">price(T::Trade)</code></pre><p>Cost basis of the trade&#39;s volume at its derivative&#39;s entry price.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-A = asset();
-B = Buy(A, 10);
-O = order(B, 100);
-T = Trade(O);
-price(T)
-# output
-
-7887.71178523604</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Trade.jl#L71-L87">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.value-Tuple{Trade}"><a class="docstring-binding" href="#Orcus.value-Tuple{Trade}"><code>Orcus.value</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">value(T::Trade)</code></pre><p>Current mark-to-market value of the trade&#39;s volume at its derivative&#39;s current value.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-A = asset();
-B = Buy(A, 10);
-O = order(B, 100);
-T = Trade(O);
-value(T)
-# output
-
-6887.71178523604</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Trade.jl#L52-L68">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.Position"><a class="docstring-binding" href="#Orcus.Position"><code>Orcus.Position</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Position(D::Derivative)</code></pre><p>A netted position in a single instrument (identified by <code>instrument_key</code>). All fills on the same instrument aggregate here:</p><ul><li><code>net_qty</code>     — signed open quantity; the position is closed when this reaches 0.</li><li><code>avg_cost</code>    — weighted-average per-unit entry price, in the <code>price(derivative)</code>                 convention (raw, <em>excluding</em> fees).</li><li><code>realized_pnl</code>— realized trading P&amp;L net of all commissions and slippage charged on                 this instrument.</li><li><code>loan</code>        — broker-financed dollar amount still owed against this position (<code>0.0</code>                 unless opened under a margin model with <code>initial_margin_pct &lt; 1.0</code>).</li></ul><p>Fees are <em>not</em> folded into <code>avg_cost</code> (so mark-to-market basis stays clean); they are subtracted from <code>realized_pnl</code> as they occur. Equity (<code>cash + Σ value(P) - Σ loan</code>) is the source of truth and already reflects fees via the cash ledger.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A = asset()
-P = Position(Buy(A, 0))
-apply_trade!(P, 10.0, value(A), 0.0)   # open 10 @ spot
-is_closed(P)
-# output
-
-false</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L1-L29">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.abs_return-Tuple{Position}"><a class="docstring-binding" href="#Orcus.abs_return-Tuple{Position}"><code>Orcus.abs_return</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">abs_return(P::Position)</code></pre><p>Unrealized P&amp;L: current value minus cost basis.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-abs_return(P)
-# output
-
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L133-L148">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.apply_trade!"><a class="docstring-binding" href="#Orcus.apply_trade!"><code>Orcus.apply_trade!</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">apply_trade!(P::Position, qty::Real, fill_price::Real, fee::Real=0.0; borrowed::Real=0.0)</code></pre><p>Fold a fill of signed <code>qty</code> units at per-unit <code>fill_price</code> into the netted position, updating cost basis on same-direction fills or realizing P&amp;L on reducing/closing/flipping fills. <code>fee</code> is subtracted from <code>realized_pnl</code>; <code>borrowed</code> accumulates into <code>loan</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-P.net_qty
-# output
-
-10.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L222-L239">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.is_closed-Tuple{Position}"><a class="docstring-binding" href="#Orcus.is_closed-Tuple{Position}"><code>Orcus.is_closed</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">is_closed(P::Position)</code></pre><p>Whether the position&#39;s net quantity is zero.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-is_closed(P)
-# output
-
-true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L205-L219">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.log_return-Tuple{Position}"><a class="docstring-binding" href="#Orcus.log_return-Tuple{Position}"><code>Orcus.log_return</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">log_return(P::Position)</code></pre><p>Log return of current value over cost basis (<code>-Inf</code> if the value is non-positive).</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-log_return(P)
-# output
-
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L169-L184">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.pct_return-Tuple{Position}"><a class="docstring-binding" href="#Orcus.pct_return-Tuple{Position}"><code>Orcus.pct_return</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">pct_return(P::Position)</code></pre><p>Unrealized P&amp;L as a fraction of the cost basis (<code>0.0</code> if the cost basis is <code>0.0</code>).</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-pct_return(P)
-# output
-
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L151-L166">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.price-Tuple{Position}"><a class="docstring-binding" href="#Orcus.price-Tuple{Position}"><code>Orcus.price</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">price(P::Position)</code></pre><p>Cost basis of the position (<code>net_qty * avg_cost</code>).</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-price(P)
-# output
-
-94.55734786039032</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L115-L130">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.realized_pnl-Tuple{Position}"><a class="docstring-binding" href="#Orcus.realized_pnl-Tuple{Position}"><code>Orcus.realized_pnl</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">realized_pnl(P::Position)</code></pre><p>Realized trading P&amp;L on the position, net of commissions and slippage.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-realized_pnl(P)
-# output
-
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L187-L202">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.request_to_close-Tuple{Position}"><a class="docstring-binding" href="#Orcus.request_to_close-Tuple{Position}"><code>Orcus.request_to_close</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">request_to_close(P::Position)</code></pre><p>Set the position&#39;s close flag. Use the broker API (<a href="#Orcus.request_to_close_all!-Tuple{Broker}"><code>request_to_close_all!</code></a>/<a href="#Orcus.request_to_close!-Tuple{Broker, String}"><code>request_to_close!</code></a>) to actually have it closed.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-request_to_close(P);
-P.requestToClose
-# output
-
-true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L268-L284">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.u_value-Tuple{Position}"><a class="docstring-binding" href="#Orcus.u_value-Tuple{Position}"><code>Orcus.u_value</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">u_value(P::Position)</code></pre><p>Current value of the position in the underlying&#39;s own price units, before fx conversion.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-u_value(P)
-# output
-
-94.55734786039032</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L97-L112">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.value-Tuple{Position}"><a class="docstring-binding" href="#Orcus.value-Tuple{Position}"><code>Orcus.value</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">value(P::Position)</code></pre><p>Current mark-to-market value of the position, in the broker&#39;s base currency.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-value(P)
-# output
-
-94.55734786039032</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L78-L93">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.volume-Tuple{Position}"><a class="docstring-binding" href="#Orcus.volume-Tuple{Position}"><code>Orcus.volume</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">volume(P::Position)</code></pre><p>The position&#39;s signed net quantity.</p><pre><code class="language-julia hljs">Random.seed!(1);
-A=asset();
-P=Position(Buy(A,0));
-apply_trade!(P, 10.0, value(A), 0.0);
-volume(P)
-# output
-
-10.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Position.jl#L60-L75">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.Portfolio"><a class="docstring-binding" href="#Orcus.Portfolio"><code>Orcus.Portfolio</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Portfolio()</code></pre><p>Netted open positions, keyed by <a href="../core_derivatives/#Orcus.InstrumentKey"><code>InstrumentKey</code></a>.</p><pre><code class="language-julia hljs">isempty(Portfolio())
-# output
-
-true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Portfolio.jl#L37-L48">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.has_position-Tuple{Portfolio, String}"><a class="docstring-binding" href="#Orcus.has_position-Tuple{Portfolio, String}"><code>Orcus.has_position</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">has_position(pf::Portfolio, ticker::String)</code></pre><p>Return <code>true</code> if the portfolio holds any open position (long or short) in <code>ticker</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-ticker=B.market.assets[2].ticker;
-A=B.market.data[ticker];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-has_position(B.portfolio, ticker)
-# output
-
-true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Portfolio.jl#L311-L329">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.position_direction-Tuple{Portfolio, String}"><a class="docstring-binding" href="#Orcus.position_direction-Tuple{Portfolio, String}"><code>Orcus.position_direction</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">position_direction(pf::Portfolio, ticker::String)</code></pre><p>Return <code>:long</code>, <code>:short</code>, or <code>:flat</code> for the first open position in <code>ticker</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-ticker=B.market.assets[2].ticker;
-A=B.market.data[ticker];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-position_direction(B.portfolio, ticker)
-# output
-
-:long</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Portfolio.jl#L344-L362">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.total_loan-Tuple{Portfolio}"><a class="docstring-binding" href="#Orcus.total_loan-Tuple{Portfolio}"><code>Orcus.total_loan</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">total_loan(pf::Portfolio)</code></pre><p>Sum of <code>P.loan</code> over all open positions — the aggregate broker-financed debt outstanding. Always <code>0.0</code> unless positions were opened under a margin model with <code>initial_margin_pct &lt; 1.0</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-A=B.market.assets[2];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-total_loan(B.portfolio)
-# output
-
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Portfolio.jl#L102-L120">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.total_value-Tuple{Portfolio}"><a class="docstring-binding" href="#Orcus.total_value-Tuple{Portfolio}"><code>Orcus.total_value</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">total_value(pf::Portfolio)</code></pre><p>Sum of <code>value(P)</code> over all open positions.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-A=B.market.assets[2];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-total_value(B.portfolio)
-# output
-
-22.50173968887256</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Portfolio.jl#L60-L77">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.Broker"><a class="docstring-binding" href="#Orcus.Broker"><code>Orcus.Broker</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())</code></pre><p>The order-executing unit of the system. Holds cash, a <code>Market</code>, a pluggable transaction <code>cost_model</code>, a pluggable <code>margin_model</code>, a netted <code>portfolio</code> (keyed by <code>instrument_key</code>), the open <code>orders</code> queue (FIFO), the executed-trade <code>history</code>, a list of <code>rejected</code> orders, a list of <code>margin_calls</code> (bar indices where a maintenance breach forced a full liquidation), and the <code>equity_history</code>.</p><pre><code class="language-julia hljs">Random.seed!(1234);
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Orders &amp; accounting · Orcus.jl</title><meta name="title" content="Orders &amp; accounting · Orcus.jl"/><meta property="og:title" content="Orders &amp; accounting · Orcus.jl"/><meta property="twitter:title" content="Orders &amp; accounting · Orcus.jl"/><meta name="description" content="Documentation for Orcus.jl."/><meta property="og:description" content="Documentation for Orcus.jl."/><meta property="twitter:description" content="Documentation for Orcus.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.svg" alt="Orcus.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">Orcus.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">Core</span><ul><li><a class="tocitem" href="../core_data/">Market data</a></li><li class="is-active"><a class="tocitem" href>Orders &amp; accounting</a><ul class="internal"><li><a class="tocitem" href="#Broker-and-Order-processing"><span>Broker and Order processing</span></a></li></ul></li><li><a class="tocitem" href="../core_derivatives/">Derivatives</a></li><li><a class="tocitem" href="../core_strategy/">Strategy authoring</a></li><li><a class="tocitem" href="../core_backtest/">Backtesting</a></li></ul></li><li><a class="tocitem" href="../lib/">Lib</a></li><li><a class="tocitem" href="../analytics/">Analytics</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Core</a></li><li class="is-active"><a href>Orders &amp; accounting</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Orders &amp; accounting</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/Sequenzer/Orcus.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/Sequenzer/Orcus.jl/blob/main/docs/src/core_accounting.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Orders-and-accounting"><a class="docs-heading-anchor" href="#Orders-and-accounting">Orders &amp; accounting</a><a id="Orders-and-accounting-1"></a><a class="docs-heading-anchor-permalink" href="#Orders-and-accounting" title="Permalink"></a></h1><p>&lt;!– TODO: explain order/fill/accounting path, Position netting, CostModel/MarginModel –&gt;</p><h2 id="Broker-and-Order-processing"><a class="docs-heading-anchor" href="#Broker-and-Order-processing">Broker and Order processing</a><a id="Broker-and-Order-processing-1"></a><a class="docs-heading-anchor-permalink" href="#Broker-and-Order-processing" title="Permalink"></a></h2><article><details class="docstring" open="true"><summary id="Orcus.Broker"><a class="docstring-binding" href="#Orcus.Broker"><code>Orcus.Broker</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())</code></pre><p>The order-executing unit of the system. Holds cash, a <code>Market</code>, a pluggable transaction <code>cost_model</code>, a pluggable <code>margin_model</code>, a netted <code>portfolio</code> (keyed by <code>instrument_key</code>), the open <code>orders</code> queue (FIFO), the executed-trade <code>history</code>, a list of <code>rejected</code> orders, a list of <code>margin_calls</code> (bar indices where a maintenance breach forced a full liquidation), and the <code>equity_history</code>.</p><pre><code class="language-julia hljs">Random.seed!(1234);
 x=asset();
 y=asset();
 M=Market([x,y]);
@@ -223,123 +7,13 @@ B = Broker(M,1000);
 isa(B,Broker)
 # output
 
-true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L2-L23">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.broker-Tuple{Market, Real}"><a class="docstring-binding" href="#Orcus.broker-Tuple{Market, Real}"><code>Orcus.broker</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
+true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L2-L23">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.broker"><a class="docstring-binding" href="#Orcus.broker"><code>Orcus.broker</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
 broker(n_Assets::Int, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())</code></pre><p>Build a <code>Broker</code>. With a <code>market</code>, wraps it directly. With an asset count, builds a market of that many random assets first.</p><pre><code class="language-julia hljs">Random.seed!(1);
 B = broker(3, 1000);
 length(B.market.assets)
 # output
 
-3</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L56-L71">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.cash_history-Tuple{Broker}"><a class="docstring-binding" href="#Orcus.cash_history-Tuple{Broker}"><code>Orcus.cash_history</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">cash_history(B::Broker)</code></pre><p>Return the cash history of the Broker as a vector of <code>(date, cash)</code> tuples, one per trade plus the opening and current balance.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-M=market([asset(),asset()]);
-T=Backtest(M,CrossOverStrategy,1000);
-run_test(T);
-h=cash_history(T.broker);
-last(h)
-# output
-
-(3651, -18.284421217236527)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L676-L693">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.has_position-Tuple{Broker, String}"><a class="docstring-binding" href="#Orcus.has_position-Tuple{Broker, String}"><code>Orcus.has_position</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">has_position(B::Broker, ticker::String)</code></pre><p>Return <code>true</code> if the broker currently holds any open position (long or short) in <code>ticker</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-ticker=B.market.assets[2].ticker;
-A=B.market.data[ticker];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-has_position(B, ticker)
-# output
-
-true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L598-L616">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.place_order!-Tuple{Broker, Order}"><a class="docstring-binding" href="#Orcus.place_order!-Tuple{Broker, Order}"><code>Orcus.place_order!</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">place_order!(B::Broker,O::Order)</code></pre><p>Place an Order in the Broker&#39;s Orderbook</p><pre><code class="language-julia hljs">Random.seed!(1234);
-B = broker(3,1000);
-A = B.market.assets[2]
-O = Order(Buy(A,10))
-place_order!(B,O)
-B
-# output
-
-Broker with 1000.0 funds and 1 open orders</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L95-L112">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.position_direction-Tuple{Broker, String}"><a class="docstring-binding" href="#Orcus.position_direction-Tuple{Broker, String}"><code>Orcus.position_direction</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">position_direction(B::Broker, ticker::String)</code></pre><p>Return <code>:long</code>, <code>:short</code>, or <code>:flat</code> for the current open position in <code>ticker</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-ticker=B.market.assets[2].ticker;
-A=B.market.data[ticker];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-position_direction(B, ticker)
-# output
-
-:long</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L619-L637">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.process_all!-Tuple{Broker}"><a class="docstring-binding" href="#Orcus.process_all!-Tuple{Broker}"><code>Orcus.process_all!</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">process_all!(B::Broker)</code></pre><p>Run one full bar for the broker: process the orderbook, resolve any pending closes, accrue borrow fees and check margin, then record the bar&#39;s equity.</p><pre><code class="language-julia hljs">Random.seed!(1);
-x=asset();
-y=asset();
-M=market([x,y]);
-B=broker(M,1000);
-advance_to!(M, 1);
-process_all!(B);
-length(B.equity_history)
-# output
-
-1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L473-L492">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.process_order!"><a class="docstring-binding" href="#Orcus.process_order!"><code>Orcus.process_order!</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">process_order!(B::Broker, O::Order, check_books::Bool=true)</code></pre><p>Strictly process a single order: remove it from the orderbook (when <code>check_books</code>) and fill it via <code>execute!</code> with <code>strict=true</code>, so insufficient funds raise instead of being recorded as a rejection.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-B = broker(3,1000);
-A = B.market.assets[2]
-O = Order(Buy(A,10))
-place_order!(B,O)
-process_order!(B,O)
-length(B.history)
-# output
-
-1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L270-L289">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.process_orders!-Tuple{Broker}"><a class="docstring-binding" href="#Orcus.process_orders!-Tuple{Broker}"><code>Orcus.process_orders!</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">process_orders!(B::Broker)</code></pre><p>Process the whole orderbook in <strong>FIFO</strong> order via <code>execute!</code>. Orders that fully fill (the whole book, for plain market orders) or are rejected for insufficient funds are removed; resting limit/stop orders that don&#39;t trigger on this bar, and partially-filled orders with quantity still outstanding, stay queued for a future bar.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-B = broker(3,1000);
-A = B.market.assets[2]
-O = Order(Buy(A,10))
-place_order!(B,O)
-process_orders!(B)
-length(B.history)
-
-# output
-
-1
-</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L398-L420">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.realized_pnl-Tuple{Broker}"><a class="docstring-binding" href="#Orcus.realized_pnl-Tuple{Broker}"><code>Orcus.realized_pnl</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">realized_pnl(B::Broker)</code></pre><p>Total realized trading P&amp;L, net of all commissions and slippage, across still-open positions.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-A=B.market.assets[2];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-realized_pnl(B)
-# output
-
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L648-L665">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.request_to_close!-Tuple{Broker, String}"><a class="docstring-binding" href="#Orcus.request_to_close!-Tuple{Broker, String}"><code>Orcus.request_to_close!</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">request_to_close!(B::Broker, ticker::String)</code></pre><p>Mark all open positions for <code>ticker</code> to be closed on the next <code>process_all!</code> call.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-ticker=B.market.assets[2].ticker;
-A=B.market.data[ticker];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-request_to_close!(B, ticker);
-resolve_portfolio!(B);
-length(B.history)
-# output
-
-2</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L571-L591">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.request_to_close_all!-Tuple{Broker}"><a class="docstring-binding" href="#Orcus.request_to_close_all!-Tuple{Broker}"><code>Orcus.request_to_close_all!</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">request_to_close_all!(B::Broker)</code></pre><p>Flag every open position to be closed on the next <code>resolve_portfolio!</code>/<code>process_all!</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
-B=broker(3,1000);
-A=B.market.assets[2];
-O=Order(Buy(A,10));
-place_order!(B,O);
-process_order!(B,O);
-request_to_close_all!(B);
-resolve_portfolio!(B);
-length(B.history)
-# output
-
-2</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L545-L564">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.resolve_portfolio!-Tuple{Broker}"><a class="docstring-binding" href="#Orcus.resolve_portfolio!-Tuple{Broker}"><code>Orcus.resolve_portfolio!</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">resolve_portfolio!(B::Broker)</code></pre><p>Close every position whose <code>requestToClose</code> flag is set, liquidating at the current market value. Each close realizes P&amp;L, applies transaction costs, books the cash, records a closing <code>Trade</code>, and removes the position from the portfolio. Forced — always executes.</p><pre><code class="language-julia hljs">Random.seed!(1234);
-B = broker(3,1000);
-A = B.market.assets[2]
-O = Order(Sell(A,10))
-place_order!(B,O)
-process_order!(B,O)
-request_to_close_all!(B)
-resolve_portfolio!(B)
-length(B.history)
-
-# output
-
-2</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L316-L340">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.status"><a class="docstring-binding" href="#Orcus.status"><code>Orcus.status</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">status(B::Broker,digits::Int=2)</code></pre><p>Print the status of the Broker</p><pre><code class="language-julia hljs">Random.seed!(1234);
+3</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L56-L71">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.status"><a class="docstring-binding" href="#Orcus.status"><code>Orcus.status</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">status(B::Broker,digits::Int=2)</code></pre><p>Print the status of the Broker</p><pre><code class="language-julia hljs">Random.seed!(1234);
 x=asset();
 y=asset();
 M=market([x,y]);
@@ -354,33 +28,102 @@ Cash: 1000.0
 Number of orders: 0
 Number of positions: 0
 Number of trades: 0
-========================================</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Broker.jl#L508-L532">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.CostModel"><a class="docstring-binding" href="#Orcus.CostModel"><code>Orcus.CostModel</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">CostModel</code></pre><p>Abstract type for transaction-cost models. A cost model maps the gross notional of a fill to a <code>(commission, slippage)</code> pair, both expressed as positive cash amounts that always <em>worsen</em> the fill (commission is paid, slippage is an adverse price move).</p><p>Implement a new model by adding a <code>transaction_cost(::MyCostModel, notional)</code> method.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Cost.jl#L1-L9">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.FlatCost"><a class="docstring-binding" href="#Orcus.FlatCost"><code>Orcus.FlatCost</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">FlatCost(; commission_pct=0.0, slippage_bps=0.0)</code></pre><p>Flat proportional cost model.</p><ul><li><code>commission_pct</code> — commission as a fraction of <code>|notional|</code> (e.g. <code>0.001</code> = 10 bps).</li><li><code>slippage_bps</code>   — adverse fill as basis points of <code>|notional|</code> (e.g. <code>5.0</code> = 5 bps).</li></ul><p>Both are charged on every fill regardless of trade direction.</p><pre><code class="language-julia hljs">fc=FlatCost(commission_pct=0.001, slippage_bps=5.0);
-transaction_cost(fc, 1000.0)
+========================================</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L505-L529">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Base.length"><a class="docstring-binding" href="#Base.length"><code>Base.length</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">length(B::Broker)</code></pre><p>Return the length of the market the Broker is operating on.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L664-L668">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.cash_history"><a class="docstring-binding" href="#Orcus.cash_history"><code>Orcus.cash_history</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">cash_history(B::Broker)</code></pre><p>Return the cash history of the Broker as a vector of <code>(date, cash)</code> tuples, one per trade plus the opening and current balance.</p><pre><code class="language-julia hljs">Random.seed!(1234);
+M=market([asset(),asset()]);
+T=Backtest(M,CrossOverStrategy,1000);
+run_test(T);
+h=cash_history(T.broker);
+last(h)
 # output
 
-(commission = 1.0, slippage = 0.5)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Cost.jl#L27-L44">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.NoCost"><a class="docstring-binding" href="#Orcus.NoCost"><code>Orcus.NoCost</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">NoCost()</code></pre><p>Frictionless fills — zero commission, zero slippage. The default so existing backtests behave exactly as before.</p><pre><code class="language-julia hljs">transaction_cost(NoCost(), 1000.0)
+(3651, -18.284421217236527)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L671-L688">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.request_to_close_all!"><a class="docstring-binding" href="#Orcus.request_to_close_all!"><code>Orcus.request_to_close_all!</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">request_to_close_all!(B::Broker)</code></pre><p>Flag every open position to be closed on the next <code>resolve_portfolio!</code>/<code>process_all!</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+request_to_close_all!(B);
+resolve_portfolio!(B);
+length(B.history)
 # output
 
-(commission = 0.0, slippage = 0.0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Cost.jl#L12-L24">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.transaction_cost-Tuple{NoCost, Real}"><a class="docstring-binding" href="#Orcus.transaction_cost-Tuple{NoCost, Real}"><code>Orcus.transaction_cost</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">transaction_cost(model::CostModel, notional::Real)</code></pre><p>Return the <code>(commission, slippage)</code> cash amounts for a fill of the given gross <code>notional</code>. Both values are non-negative.</p><pre><code class="language-julia hljs">transaction_cost(NoCost(), 1000.0)
+2</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L542-L561">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.place_order!"><a class="docstring-binding" href="#Orcus.place_order!"><code>Orcus.place_order!</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">place_order!(B::Broker,O::Order)</code></pre><p>Place an Order in the Broker&#39;s Orderbook</p><pre><code class="language-julia hljs">Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Buy(A,10))
+place_order!(B,O)
+B
 # output
 
-(commission = 0.0, slippage = 0.0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Cost.jl#L53-L65">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.MarginModel"><a class="docstring-binding" href="#Orcus.MarginModel"><code>Orcus.MarginModel</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">MarginModel</code></pre><p>Abstract type for margin/leverage models, governing leverage on longs, cash required for shorts, the liquidation threshold, and the per-bar financing rate — see <a href="#Orcus.initial_margin_pct-Tuple{NoMargin}"><code>initial_margin_pct</code></a>, <a href="#Orcus.short_margin_rate-Tuple{NoMargin}"><code>short_margin_rate</code></a>, <a href="#Orcus.maintenance_margin_pct-Tuple{NoMargin}"><code>maintenance_margin_pct</code></a>, <a href="#Orcus.borrow_rate-Tuple{NoMargin}"><code>borrow_rate</code></a>. Implement a new model by adding methods for all four.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Margin.jl#L1-L8">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.NoMargin"><a class="docstring-binding" href="#Orcus.NoMargin"><code>Orcus.NoMargin</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">NoMargin()</code></pre><p>No leverage, no liquidation, no borrow fee — the default, so existing backtests behave exactly as before margin models existed. Longs are fully cash-secured (<code>initial_margin_pct == 1.0</code>); shorts are unconstrained (<code>short_margin_rate == 0.0</code>, today&#39;s exact behavior); the maintenance check and borrow-fee accrual are no-ops.</p><pre><code class="language-julia hljs">NoMargin()
+Broker with 1000.0 funds and 1 open orders</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L95-L112">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.process_order!"><a class="docstring-binding" href="#Orcus.process_order!"><code>Orcus.process_order!</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">process_order!(B::Broker, O::Order, check_books::Bool=true)</code></pre><p>Strictly process a single order: remove it from the orderbook (when <code>check_books</code>) and fill it via <code>execute!</code> with <code>strict=true</code>, so insufficient funds raise instead of being recorded as a rejection.</p><pre><code class="language-julia hljs">Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Buy(A,10))
+place_order!(B,O)
+process_order!(B,O)
+length(B.history)
 # output
 
-NoMargin()</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Margin.jl#L11-L25">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.RegTMargin"><a class="docstring-binding" href="#Orcus.RegTMargin"><code>Orcus.RegTMargin</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">RegTMargin(initial_pct::Real, maintenance_pct::Real, borrow_rate::Real)</code></pre><p>A configurable leverage model — not a regulatory-accurate Reg-T implementation, just named after the familiar initial/maintenance-margin shape. <code>initial_pct</code> sets leverage for both long opens (e.g. <code>0.5</code> → 2x leverage) and the cash required to open a short; <code>maintenance_pct</code> sets the liquidation threshold; <code>borrow_rate</code> is the per-bar financing rate.</p><pre><code class="language-julia hljs">m=RegTMargin(0.5, 0.25, 0.05);
-initial_margin_pct(m)
+1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L268-L287">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.resolve_portfolio!"><a class="docstring-binding" href="#Orcus.resolve_portfolio!"><code>Orcus.resolve_portfolio!</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">resolve_portfolio!(B::Broker)</code></pre><p>Close every position whose <code>requestToClose</code> flag is set, liquidating at the current market value. Each close realizes P&amp;L, applies transaction costs, books the cash, records a closing <code>Trade</code>, and removes the position from the portfolio. Forced — always executes.</p><pre><code class="language-julia hljs">Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Sell(A,10))
+place_order!(B,O)
+process_order!(B,O)
+request_to_close_all!(B)
+resolve_portfolio!(B)
+length(B.history)
+
 # output
 
-0.5</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Margin.jl#L84-L99">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.borrow_rate-Tuple{NoMargin}"><a class="docstring-binding" href="#Orcus.borrow_rate-Tuple{NoMargin}"><code>Orcus.borrow_rate</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">borrow_rate(m::MarginModel)</code></pre><p>Per-bar rate charged on financed-long and short exposure under <code>m</code>.</p><pre><code class="language-julia hljs">borrow_rate(NoMargin())
+2</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L314-L338">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.process_orders!"><a class="docstring-binding" href="#Orcus.process_orders!"><code>Orcus.process_orders!</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">process_orders!(B::Broker)</code></pre><p>Process the whole orderbook in <strong>FIFO</strong> order via <code>execute!</code>. Orders that fully fill (the whole book, for plain market orders) or are rejected for insufficient funds are removed; resting limit/stop orders that don&#39;t trigger on this bar, and partially-filled orders with quantity still outstanding, stay queued for a future bar.</p><pre><code class="language-julia hljs">Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Buy(A,10))
+place_order!(B,O)
+process_orders!(B)
+length(B.history)
+
 # output
 
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Margin.jl#L70-L81">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.initial_margin_pct-Tuple{NoMargin}"><a class="docstring-binding" href="#Orcus.initial_margin_pct-Tuple{NoMargin}"><code>Orcus.initial_margin_pct</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">initial_margin_pct(m::MarginModel)</code></pre><p>Fraction of notional that must be cash-secured on a same-direction long open/add under <code>m</code>.</p><pre><code class="language-julia hljs">initial_margin_pct(NoMargin())
+1
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L395-L417">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.process_all!"><a class="docstring-binding" href="#Orcus.process_all!"><code>Orcus.process_all!</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">process_all!(B::Broker)</code></pre><p>Run one full bar for the broker: process the orderbook, resolve any pending closes, accrue borrow fees and check margin, then record the bar&#39;s equity.</p><pre><code class="language-julia hljs">Random.seed!(1);
+x=asset();
+y=asset();
+M=market([x,y]);
+B=broker(M,1000);
+advance_to!(M, 1);
+process_all!(B);
+length(B.equity_history)
 # output
 
-1.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Margin.jl#L28-L39">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.maintenance_margin_pct-Tuple{NoMargin}"><a class="docstring-binding" href="#Orcus.maintenance_margin_pct-Tuple{NoMargin}"><code>Orcus.maintenance_margin_pct</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">maintenance_margin_pct(m::MarginModel)</code></pre><p>Fraction of gross open position value that account equity must stay above under <code>m</code> before the whole book is liquidated.</p><pre><code class="language-julia hljs">maintenance_margin_pct(NoMargin())
+1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L470-L489">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.position_direction"><a class="docstring-binding" href="#Orcus.position_direction"><code>Orcus.position_direction</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">position_direction(pf::Portfolio, ticker::String)</code></pre><p>Return <code>:long</code>, <code>:short</code>, or <code>:flat</code> for the first open position in <code>ticker</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
+B=broker(3,1000);
+ticker=B.market.assets[2].ticker;
+A=B.market.data[ticker];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+position_direction(B.portfolio, ticker)
 # output
 
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Margin.jl#L55-L67">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.short_margin_rate-Tuple{NoMargin}"><a class="docstring-binding" href="#Orcus.short_margin_rate-Tuple{NoMargin}"><code>Orcus.short_margin_rate</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">short_margin_rate(m::MarginModel)</code></pre><p>Fraction of notional that must be on hand to open/add a short position under <code>m</code>.</p><pre><code class="language-julia hljs">short_margin_rate(NoMargin())
+:long</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Portfolio.jl#L344-L362">source</a></section><section><div><pre><code class="language-julia hljs">position_direction(B::Broker, ticker::String)</code></pre><p>Return <code>:long</code>, <code>:short</code>, or <code>:flat</code> for the current open position in <code>ticker</code>.</p><pre><code class="language-julia hljs">Random.seed!(1);
+B=broker(3,1000);
+ticker=B.market.assets[2].ticker;
+A=B.market.data[ticker];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+position_direction(B, ticker)
 # output
 
-0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/98b6dfd3dbc353c611352ee07ce4a8615d5650e3/src/Core/Margin.jl#L41-L52">source</a></section></details></article><ul><li><a href="#Orcus.Broker"><code>Orcus.Broker</code></a></li><li><a href="#Orcus.CostModel"><code>Orcus.CostModel</code></a></li><li><a href="#Orcus.FlatCost"><code>Orcus.FlatCost</code></a></li><li><a href="#Orcus.Limit"><code>Orcus.Limit</code></a></li><li><a href="#Orcus.MarginModel"><code>Orcus.MarginModel</code></a></li><li><a href="#Orcus.MarketOrder"><code>Orcus.MarketOrder</code></a></li><li><a href="#Orcus.NoCost"><code>Orcus.NoCost</code></a></li><li><a href="#Orcus.NoMargin"><code>Orcus.NoMargin</code></a></li><li><a href="#Orcus.Order"><code>Orcus.Order</code></a></li><li><a href="#Orcus.OrderKind"><code>Orcus.OrderKind</code></a></li><li><a href="#Orcus.Portfolio"><code>Orcus.Portfolio</code></a></li><li><a href="#Orcus.Position"><code>Orcus.Position</code></a></li><li><a href="#Orcus.RegTMargin"><code>Orcus.RegTMargin</code></a></li><li><a href="#Orcus.Stop"><code>Orcus.Stop</code></a></li><li><a href="#Orcus.Trade"><code>Orcus.Trade</code></a></li><li><a href="#Orcus.abs_return-Tuple{Position}"><code>Orcus.abs_return</code></a></li><li><a href="#Orcus.apply_trade!"><code>Orcus.apply_trade!</code></a></li><li><a href="#Orcus.borrow_rate-Tuple{NoMargin}"><code>Orcus.borrow_rate</code></a></li><li><a href="#Orcus.broker-Tuple{Market, Real}"><code>Orcus.broker</code></a></li><li><a href="#Orcus.cash_history-Tuple{Broker}"><code>Orcus.cash_history</code></a></li><li><a href="#Orcus.check_trigger-Union{Tuple{D}, Tuple{Order{D, MarketOrder}, Any, Int64}} where D&lt;:Derivative"><code>Orcus.check_trigger</code></a></li><li><a href="#Orcus.fulfill"><code>Orcus.fulfill</code></a></li><li><a href="#Orcus.has_position-Tuple{Broker, String}"><code>Orcus.has_position</code></a></li><li><a href="#Orcus.has_position-Tuple{Portfolio, String}"><code>Orcus.has_position</code></a></li><li><a href="#Orcus.initial_margin_pct-Tuple{NoMargin}"><code>Orcus.initial_margin_pct</code></a></li><li><a href="#Orcus.is_closed-Tuple{Position}"><code>Orcus.is_closed</code></a></li><li><a href="#Orcus.isfulfilled-Tuple{Order}"><code>Orcus.isfulfilled</code></a></li><li><a href="#Orcus.limit_order-Tuple{Derivative, Real, Real}"><code>Orcus.limit_order</code></a></li><li><a href="#Orcus.log_return-Tuple{Position}"><code>Orcus.log_return</code></a></li><li><a href="#Orcus.maintenance_margin_pct-Tuple{NoMargin}"><code>Orcus.maintenance_margin_pct</code></a></li><li><a href="#Orcus.order"><code>Orcus.order</code></a></li><li><a href="#Orcus.pct_return-Tuple{Position}"><code>Orcus.pct_return</code></a></li><li><a href="#Orcus.place_order!-Tuple{Broker, Order}"><code>Orcus.place_order!</code></a></li><li><a href="#Orcus.position_direction-Tuple{Portfolio, String}"><code>Orcus.position_direction</code></a></li><li><a href="#Orcus.position_direction-Tuple{Broker, String}"><code>Orcus.position_direction</code></a></li><li><a href="#Orcus.price-Tuple{Order}"><code>Orcus.price</code></a></li><li><a href="#Orcus.price-Tuple{Trade}"><code>Orcus.price</code></a></li><li><a href="#Orcus.price-Tuple{Position}"><code>Orcus.price</code></a></li><li><a href="#Orcus.process_all!-Tuple{Broker}"><code>Orcus.process_all!</code></a></li><li><a href="#Orcus.process_order!"><code>Orcus.process_order!</code></a></li><li><a href="#Orcus.process_orders!-Tuple{Broker}"><code>Orcus.process_orders!</code></a></li><li><a href="#Orcus.realized_pnl-Tuple{Broker}"><code>Orcus.realized_pnl</code></a></li><li><a href="#Orcus.realized_pnl-Tuple{Position}"><code>Orcus.realized_pnl</code></a></li><li><a href="#Orcus.remaining-Tuple{Order}"><code>Orcus.remaining</code></a></li><li><a href="#Orcus.request_to_close-Tuple{Position}"><code>Orcus.request_to_close</code></a></li><li><a href="#Orcus.request_to_close!-Tuple{Broker, String}"><code>Orcus.request_to_close!</code></a></li><li><a href="#Orcus.request_to_close_all!-Tuple{Broker}"><code>Orcus.request_to_close_all!</code></a></li><li><a href="#Orcus.resolve_portfolio!-Tuple{Broker}"><code>Orcus.resolve_portfolio!</code></a></li><li><a href="#Orcus.short_margin_rate-Tuple{NoMargin}"><code>Orcus.short_margin_rate</code></a></li><li><a href="#Orcus.status"><code>Orcus.status</code></a></li><li><a href="#Orcus.stop_order-Tuple{Derivative, Real, Real}"><code>Orcus.stop_order</code></a></li><li><a href="#Orcus.total_loan-Tuple{Portfolio}"><code>Orcus.total_loan</code></a></li><li><a href="#Orcus.total_value-Tuple{Portfolio}"><code>Orcus.total_value</code></a></li><li><a href="#Orcus.transaction_cost-Tuple{NoCost, Real}"><code>Orcus.transaction_cost</code></a></li><li><a href="#Orcus.u_value-Tuple{Position}"><code>Orcus.u_value</code></a></li><li><a href="#Orcus.value-Tuple{Trade}"><code>Orcus.value</code></a></li><li><a href="#Orcus.value-Tuple{Position}"><code>Orcus.value</code></a></li><li><a href="#Orcus.volume-Tuple{Order}"><code>Orcus.volume</code></a></li><li><a href="#Orcus.volume-Tuple{Position}"><code>Orcus.volume</code></a></li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../core_data/">« Market data</a><a class="docs-footer-nextpage" href="../core_derivatives/">Derivatives »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 7 July 2026 14:36">Tuesday 7 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+:long</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L616-L634">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.unrealized_pnl-Tuple{Broker}"><a class="docstring-binding" href="#Orcus.unrealized_pnl-Tuple{Broker}"><code>Orcus.unrealized_pnl</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">unrealized_pnl(B::Broker) -&gt; Float64</code></pre><p>Total unrealized P&amp;L (mark minus cost basis) across all currently open positions.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L637-L641">source</a></section></details></article><article><details class="docstring" open="true"><summary id="Orcus.realized_pnl-Tuple{Broker}"><a class="docstring-binding" href="#Orcus.realized_pnl-Tuple{Broker}"><code>Orcus.realized_pnl</code></a> — <span class="docstring-category">Method</span></summary><section><div><pre><code class="language-julia hljs">realized_pnl(B::Broker)</code></pre><p>Total realized trading P&amp;L, net of all commissions and slippage, across still-open positions.</p><pre><code class="language-julia hljs">Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+process_order!(B,O);
+realized_pnl(B)
+# output
+
+0.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/Sequenzer/Orcus.jl/blob/2f121f31b5c2b5bb701369a61df7d1634aeb7471/src/Core/Broker.jl#L644-L661">source</a></section></details></article><ul><li><a href="#Orcus.Broker"><code>Orcus.Broker</code></a></li><li><a href="#Base.length"><code>Base.length</code></a></li><li><a href="#Orcus.broker"><code>Orcus.broker</code></a></li><li><a href="#Orcus.cash_history"><code>Orcus.cash_history</code></a></li><li><a href="#Orcus.place_order!"><code>Orcus.place_order!</code></a></li><li><a href="#Orcus.position_direction"><code>Orcus.position_direction</code></a></li><li><a href="#Orcus.process_all!"><code>Orcus.process_all!</code></a></li><li><a href="#Orcus.process_order!"><code>Orcus.process_order!</code></a></li><li><a href="#Orcus.process_orders!"><code>Orcus.process_orders!</code></a></li><li><a href="#Orcus.realized_pnl-Tuple{Broker}"><code>Orcus.realized_pnl</code></a></li><li><a href="#Orcus.request_to_close_all!"><code>Orcus.request_to_close_all!</code></a></li><li><a href="#Orcus.resolve_portfolio!"><code>Orcus.resolve_portfolio!</code></a></li><li><a href="#Orcus.status"><code>Orcus.status</code></a></li><li><a href="#Orcus.unrealized_pnl-Tuple{Broker}"><code>Orcus.unrealized_pnl</code></a></li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../core_data/">« Market data</a><a class="docs-footer-nextpage" href="../core_derivatives/">Derivatives »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 8 July 2026 12:07">Wednesday 8 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
