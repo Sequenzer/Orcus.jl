@@ -32,8 +32,10 @@ jobs:
 
       - name: Determine version
         id: version
+        env:
+          RAW_VERSION: ${{ inputs.version }}
         run: |
-          RAW="${{ inputs.version }}"
+          RAW="$RAW_VERSION"
           if [ -z "$RAW" ]; then
             RAW=$(grep -m1 -E '^version\s*=' Project.toml | sed -E 's/.*"([^"]+)".*/\1/')
             echo "No version input; using Project.toml version: $RAW"
@@ -53,8 +55,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          if gh release view "$VERSION" >/dev/null 2>&1; then
-            echo "::error::Release $VERSION already exists." >&2
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null || gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag or release $VERSION already exists." >&2
             exit 1
           fi
           gh release create "$VERSION" \
