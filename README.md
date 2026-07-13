@@ -80,4 +80,4 @@ See `examples/` for runnable strategies, including the SMA-crossover shown above
 
 Orcus.jl is free software, licensed under the **MIT License** — see [LICENSE](LICENSE).
 
-    Copyright (C) 2022 Marcel Wack <wack@math.tu-berlin.de> and contributors
+    Copyright (C) 2022 Marcel Wack <wack@math.tu-berlin.de>
