@@ -60,6 +60,7 @@ end
     for n in (1, 10)
       M, B = _alloc_nomargin_broker(n)
       advance_to!(M, 4)
+      Orcus.resolve_portfolio!(B)   # warm-up: never called during setup (_pending_close stays false)
       @test (@allocated process_all!(B)) == 0
       @test (@allocated advance_to!(M, 5)) == 0
       @test (@allocated Orcus.process_orders!(B)) == 0
