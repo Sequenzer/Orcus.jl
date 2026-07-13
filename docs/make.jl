@@ -12,7 +12,9 @@ DocMeta.setdocmeta!(Orcus, :DocTestSetup, :(using Orcus, Random); recursive=true
 makedocs(
   sitename="Orcus.jl",
   modules=[Orcus],
-  format=Documenter.HTML(prettyurls=get(ENV, "CI", nothing) == "true"),
+  format=Documenter.HTML(
+    prettyurls=get(ENV, "CI", nothing) == "true", assets=["assets/favicon.ico"]
+  ),
   checkdocs=:exports,
   warnonly=[:missing_docs, :doctest],
   pages=[
