@@ -9,10 +9,9 @@ research and signal authoring: PCA factor models, rolling statistics, technical 
 and a lightweight two-function strategy abstraction. Write a strategy as `init`/`next`, run it
 bar-by-bar over historical data, and inspect the equity curve, trades, and portfolio.
 
-> **Status:** pre-alpha. APIs may still change, the time model is daily-bar only, and
-> execution realism is intentionally limited (market orders only; margin and multi-currency
-> support exist but are lightweight, not execution-accounting-grade). See the docs for the
-> current gap analysis.
+> **Status:** alpha. APIs may still change, execution realism is intentionally
+> limited (market orders only; margin and multi-currency support exist but are
+> lightweight).
 
 ## Install
 
@@ -27,7 +26,7 @@ Requires Julia ≥ 1.10.
 
 ## Documentation
 
-The documentation is available at [Orcus.dev](https://sequenzer.github.io/Orcus.jl/dev), you can find a tutorial, examples, and API reference there.
+The documentation is available at [Documentation](https://sequenzer.github.io/Orcus.jl/dev), you can find a tutorial, examples, and API reference there.
 
 ## Quick start
 
@@ -64,17 +63,14 @@ status(bt.broker)    # show the final status of the backtest
 
 ## What's included
 
-- **Core** — the engine: price data containers with zero-copy bar advancement, the
-  order/fill/accounting path (FIFO fills, netted positions, pluggable cost/margin models),
-  derivatives (`Buy`/`Sell`/`LongCall`/`LongPut`/`ShortCall`/`ShortPut`), the `@generate_strategy`
+- **Core** — the engine: price data containers with zero-copy bar advancement,
+  the order/fill/accounting path , simple derivatives, the `@generate_strategy`
   authoring model, and the backtest runner.
-- **Lib** — sample data loaders (`load_stock`, `load_stocks`, `available_stocks`) and example
-  strategies.
-- **Analytics** — rolling PCA (residual/zscore/multi-factor), rolling statistics, technical
-  indicators, options pricing, and a performance-stats suite (Sharpe, Sortino, Calmar, VaR,
-  CVaR, Omega, Ulcer index, information ratio).
+- **Lib** — data loaders and example strategies.
+- **Analytics** — rolling PCA, rolling statistics, technical indicators,
+  options pricing, and performance-stats.
 
-See `examples/` for runnable strategies, including the SMA-crossover shown above.
+See `examples/` for simple runnable strategies, including the SMA-crossover shown above.
 
 ## License
 
