@@ -217,7 +217,9 @@ Base.size(A::Asset) = (height(A), A.visible)
 Generate synthetic OHLC bars via Geometric Brownian Motion (drift `mu`, volatility `sigma`,
 both per intrabar substep). Non-sampled bars are filled with NaN.
 """
-function rand_ohlc(base::Number, mu::Real, sigma::Real, interval::StepRange{Int,Int}, precision::Int)
+function rand_ohlc(
+  base::Number, mu::Real, sigma::Real, interval::StepRange{Int,Int}, precision::Int
+)
   full_interval = (interval.start):1:(interval.stop)
   data_id = ["Open", "High", "Low", "Close"]
   ohlc = fill(NaN, length(data_id), length(full_interval))

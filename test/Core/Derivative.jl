@@ -28,7 +28,9 @@
       @test payoff(d, 5) == 10
 
       global RedefDerivCollision = 5
-      @test_throws LoadError eval(:(@generate_derivative RedefDerivCollision x->x (val, premium)->val+premium))
+      @test_throws LoadError eval(
+        :(@generate_derivative RedefDerivCollision x->x (val, premium)->val+premium)
+      )
     end
   end
 end

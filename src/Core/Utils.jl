@@ -41,7 +41,9 @@ gbm_path(100.0, 0.0, 0.02, 5)
  104.22904553825927
 ```
 """
-function gbm_path(x0::Real, mu::Real, sigma::Real, n::Int; rng::AbstractRNG=Random.default_rng())
+function gbm_path(
+  x0::Real, mu::Real, sigma::Real, n::Int; rng::AbstractRNG=Random.default_rng()
+)
   path = Vector{Float64}(undef, n)
   path[1] = x0
   for i in 2:n
@@ -76,7 +78,8 @@ gbm_step([100.0,50.0], [0.0,0.0], [0.02,0.03], [1.0 0.5; 0.5 1.0])
 ```
 """
 function gbm_step(x::AbstractVector{<:Real}, mu::AbstractVector{<:Real},
-  sigma::AbstractVector{<:Real}, rho::AbstractMatrix{<:Real}; rng::AbstractRNG=Random.default_rng())
+  sigma::AbstractVector{<:Real}, rho::AbstractMatrix{<:Real};
+  rng::AbstractRNG=Random.default_rng())
   L = cholesky(Symmetric(rho)).L
   return _gbm_step(x, mu, sigma, L; rng=rng)
 end
@@ -154,7 +157,9 @@ gbm_path_segments([100.0,50.0], [(mu=[0.0,0.0],sigma=[0.02,0.03],rho=[1.0 0.5; 0
   50.0  50.6188  53.2823
 ```
 """
-function gbm_path_segments(x0::AbstractVector{<:Real}, segments; rng::AbstractRNG=Random.default_rng())
+function gbm_path_segments(
+  x0::AbstractVector{<:Real}, segments; rng::AbstractRNG=Random.default_rng()
+)
   path = reshape(collect(Float64, x0), :, 1)
   x = x0
   for seg in segments

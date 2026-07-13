@@ -72,7 +72,9 @@ end
     @test p == [100.0, 100.0, 100.0, 200.0]
     @test length(p) == 1 + sum(s.n for s in segments) - length(segments)
 
-    crash_segments = [(mu=0.0, sigma=0.0, n=5), (mu=-1.0, sigma=0.0, n=2), (mu=0.0, sigma=0.0, n=5)]
+    crash_segments = [
+      (mu=0.0, sigma=0.0, n=5), (mu=-1.0, sigma=0.0, n=2), (mu=0.0, sigma=0.0, n=5)
+    ]
     cp = gbm_path_segments(100.0, crash_segments)
     @test cp[6] < cp[5]           # price right after the crash segment starts dropping
     @test cp[end] == cp[6]        # flat recovery regime holds the post-crash level

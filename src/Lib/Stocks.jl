@@ -103,7 +103,8 @@ length(available_stocks())
 34
 ```
 """
-available_stocks() = sort([splitext(f)[1] for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
+available_stocks() =
+  sort([splitext(f)[1] for f in readdir(_STOCKS_DATA_DIR) if endswith(f, ".csv")])
 
 """
     load_csvs(paths::Vector{String}; tickers::Vector{String}=[splitext(basename(p))[1] for p in paths], date::Symbol=:date, columns::Dict{Symbol,Symbol}=Dict{Symbol,Symbol}())

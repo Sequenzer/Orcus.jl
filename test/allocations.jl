@@ -25,7 +25,9 @@ end
 
 function _alloc_fx_broker()
   A = Asset("EA", _alloc_bars(200), ["Open", "High", "Low", "Close"]; currency=:EUR)
-  FX = Asset("EURUSD", repeat([2.0, 2.0, 2.0, 2.0], 1, 200), ["Open", "High", "Low", "Close"])
+  FX = Asset(
+    "EURUSD", repeat([2.0, 2.0, 2.0, 2.0], 1, 200), ["Open", "High", "Low", "Close"]
+  )
   M = Market([A])
   set_fx!(M, :EUR, FX)
   advance_to!(M, 1)
@@ -102,6 +104,7 @@ end
     M = Market([A])
     T = Backtest(M, CrossOverStrategy, 1_000.0)
     run_test(T)   # warms next across every bar; flat bars → no crossovers, no orders
+    Orcus.next(T.strategy)   # warm-up: standalone call site differs from run_test's internal loop
     @test (@allocated Orcus.next(T.strategy)) == 0
   end
 end

@@ -51,6 +51,8 @@
     @test string(typeof(s)) == "RedefStrategy"
 
     global RedefCollisionTarget = 5
-    @test_throws LoadError eval(:(@generate_strategy RedefCollisionTarget redef_next_v1 redef_init_v1))
+    @test_throws LoadError eval(
+      :(@generate_strategy RedefCollisionTarget redef_next_v1 redef_init_v1)
+    )
   end
 end
