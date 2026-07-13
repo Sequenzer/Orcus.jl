@@ -1,10 +1,8 @@
 
 @testset verbose=true "Backtest" begin
 
-  #Define single buy strategy
   global tst_init(_::Strategy) = nothing
   global function tst_next(s::Strategy)
-    #only buy at the start every asset
     length(s.broker.portfolio) > 0 && return nothing
     O = Order(Buy(s.market["TSTS"], 10))
     place_order!(s.broker, O)

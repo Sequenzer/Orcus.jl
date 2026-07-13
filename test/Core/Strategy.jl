@@ -19,7 +19,6 @@
     M=Market([x, y])
     global buy_init2(_::Strategy) = nothing
     global function buy_next2(s::Strategy)
-      #only buy at the start every asset
       if length(s.broker.portfolio) == 0
         for (_, asset) in s.market.data
           O = Order(Buy(asset, 10))

@@ -17,13 +17,11 @@ Runnable scripts in `examples/` (own environment, brings in Plots + a backend):
 ## Multi-asset / factor research
 
 - **`pca_residual.jl`** — rolling residual PCA on a small 3-asset universe.
-- **`pca_zscore.jl`** — cross-sectional PCA z-scores on a 10-asset universe.
-- **`pca_multi.jl`** — multi-factor PCA across a diversified 10-asset universe.
 - **`momentum_vol.jl`** — a momentum/volatility strategy over a 10-asset universe.
 - **`option_wheel.jl`** — a systematic put-selling wheel strategy on dividend stocks.
 
 ## Tooling
 
 - **`batch_sweep.jl`** — threaded parameter sweep via `batch_backtest`.
-- **`dataframes_export.jl`** — exporting a backtest's `trades_table` to a `DataFrame`.
-- **`backtest_profile.jl`** — allocation/timing harness for the per-bar hot path.
+- **`dataframes.jl`** — exporting a backtest's trades/positions/equity/cashflows tables to
+  `DataFrame`s.

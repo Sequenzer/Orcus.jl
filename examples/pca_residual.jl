@@ -11,7 +11,6 @@ let tickers = ["AAPL", "GOOG", "KO"]
   global M = market([s[(length(s) - n + 1):length(s)] for s in stocks])
 end
 
-# ── Strategy definition ───────────────────────────────────────────────────────
 const TARGET_NOTIONAL = 1_000.0   # dollar value per leg
 const MIN_SPREAD = 0.001     # minimum residual spread to trade (avoids noise)
 
@@ -75,7 +74,6 @@ function pca_reversal_next(s::PCAReversal)
   place_order!(s.broker, Order(Sell(a_worst), qty_worst))
 end
 
-# ── Run backtest ──────────────────────────────────────────────────────────────
 bt = Backtest(M, PCAReversal, 10_000)
 run_test(bt)
 
@@ -83,13 +81,9 @@ println(bt)
 backtest_summary(bt)
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
-println("\n=== Scree Plot (last fitted PCA) ===")
 display(screeplot(bt.strategy.pca))
-
-println("\n=== Equity Curve ===")
 display(plot(bt))
 
-println("\n=== Residual Correlation (full history) ===")
 R_all = returns_matrix(bt.market)
 _, E_all = project(bt.strategy.pca, R_all)
 plot_residual_corr(E_all, bt.strategy.nms)

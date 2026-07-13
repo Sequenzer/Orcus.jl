@@ -489,8 +489,8 @@ length(B.equity_history)
 """
 function process_all!(B::Broker)
   @inline
-  isempty(B.orders) || process_orders!(B)        # skip the call entirely on no-order bars
-  B._pending_close && resolve_portfolio!(B)      # skip the call entirely on no-close bars
+  isempty(B.orders) || process_orders!(B)
+  B._pending_close && resolve_portfolio!(B)
   loan = 0.0
   if !(B.margin_model isa NoMargin)              # single check gates both calls below and the loan read
     accrue_borrow_fee!(B)

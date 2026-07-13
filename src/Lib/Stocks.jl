@@ -1,5 +1,3 @@
-#Binding for the stocks in ./data/(name).csv
-
 const _STOCKS_DATA_DIR = joinpath(@__DIR__, "data")
 
 """

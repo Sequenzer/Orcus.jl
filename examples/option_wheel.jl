@@ -144,7 +144,6 @@ function wheel_next(s::OptionWheel)
   end
 end
 
-# ── Run ───────────────────────────────────────────────────────────────────────
 bt = Backtest(M, OptionWheel, 20_000)
 run_test(bt)
 
@@ -152,12 +151,10 @@ run_test(bt)
 bah = bah_equity(bt.market, 20_000)
 extended_summary(bt; benchmark=bah)
 
-println("\n=== Strategy vs Equal-Weight Buy-and-Hold ===")
 compare_backtests(
   [bt],
   ["OptionWheel"];
   benchmark=bah,
 )
 
-println("\n=== Equity Curve ===")
 display(plot(bt))

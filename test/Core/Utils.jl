@@ -1,5 +1,3 @@
-#Tests for Utils.jl
-
 @testset "Utilities" begin
   @testset "DataSeries" begin
     dp1 = Float64[1, 2, NaN, 4, 5]

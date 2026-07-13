@@ -128,7 +128,7 @@ price(P)
 94.55734786039032
 ```
 """
-price(P::Position) = P.net_qty * P.avg_cost                 # cost basis
+price(P::Position) = P.net_qty * P.avg_cost
 
 """
     abs_return(P::Position)
@@ -146,7 +146,7 @@ abs_return(P)
 0.0
 ```
 """
-abs_return(P::Position) = value(P) - price(P)                    # unrealized
+abs_return(P::Position) = value(P) - price(P)
 
 """
     pct_return(P::Position)

@@ -87,7 +87,7 @@ function mom_vol_next(s::MomentumVol)
     ema_vec = ema(close, s.ema_w)
     ema_now = ema_vec[nc]
     isnan(ema_now) && continue
-    close[nc] <= ema_now && continue   # below trend — skip
+    close[nc] <= ema_now && continue
 
     # 20-day realised vol for sizing
     vol_rets = diff(log.(close[(nc - s.vol_w):nc]))
@@ -115,7 +115,6 @@ function mom_vol_next(s::MomentumVol)
   end
 end
 
-# ── Run ───────────────────────────────────────────────────────────────────────
 bt = Backtest(M, MomentumVol, 50_000)
 run_test(bt)
 
@@ -123,12 +122,10 @@ run_test(bt)
 bah = bah_equity(bt.market, 50_000)
 extended_summary(bt; benchmark=bah)
 
-println("\n=== Strategy vs Equal-Weight Buy-and-Hold ===")
 compare_backtests(
   [bt],
   ["MomentumVol"];
   benchmark=bah,
 )
 
-println("\n=== Equity Curve ===")
 display(plot(bt))

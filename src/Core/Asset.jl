@@ -108,7 +108,6 @@ rowindex(A::Asset, name::String) = get(A._idx, name, 0)
 Base.show(io::IO, A::Asset) =
   print(io, "Asset '$(A.ticker)' with $(n_datasets(A)) datasets")
 
-# Indexing by row index
 Base.getindex(A::Asset, key1::Int, key2::Int) = A.data[key1, key2]
 Base.getindex(A::Asset, key1::Int, ::Colon) = A.data[key1, 1:(A.visible)]
 Base.getindex(A::Asset, ::Colon, key2::Int) = A.data[:, key2]
