@@ -5,7 +5,7 @@ Orcus = "45350dae-0ff4-4403-bb65-d8c585f51100"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 
 [sources]
-Orcus = {path = "/home/datastore/wack/Documents/CodingProjects/Orcus.jl/docs/.."}
+Orcus = {path = ".."}
 
 [compat]
 Documenter = "1"

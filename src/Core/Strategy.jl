@@ -4,6 +4,14 @@
 
 Abstract type for strategies. A concrete strategy pairs a `next`/`init` method (wired via
 [`@generate_strategy`](@ref) or [`@strategy_methods`](@ref)) with the fields it needs.
+
+```jldoctest
+struct Dummy <: Strategy end
+Dummy <: Strategy
+# output
+
+true
+```
 """
 abstract type Strategy end
 
@@ -157,9 +165,15 @@ mutable struct MyStrat <: Strategy
     market::Market
     MyStrat(b::Broker) = new(b, b.market)
 end
+my_next(s) = nothing
+my_init(s) = nothing
 @strategy_methods MyStrat my_next my_init
 s = MyStrat(Broker(Market(), 1000))
 ```
+
+Not a `jldoctest`: `@strategy_methods` resolves `StrategyName` in `Main`, which Documenter's
+sandboxed doctest module can't satisfy — run this in a real top-level script or REPL session
+instead.
 """
 macro strategy_methods(StrategyName::Symbol, next_fn::Symbol, init_fn::Symbol)
   eval(

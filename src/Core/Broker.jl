@@ -55,7 +55,7 @@ end
 
 """
     broker(market::Market, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
-    broker(n_Assets::Int, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
+    broker(n_assets::Int, cash::Real; cost_model::CostModel=NoCost(), margin_model::MarginModel=NoMargin())
 
 Build a `Broker`. With a `market`, wraps it directly. With an asset count, builds a market of
 that many random assets first.
@@ -78,18 +78,20 @@ broker(
   Broker(market, cash; cost_model=cost_model, margin_model=margin_model)
 
 function broker(
-  n_Assets::Int,
+  n_assets::Int,
   cash::Real;
   cost_model::CostModel=NoCost(),
   margin_model::MarginModel=NoMargin(),
 )
   M = market()
-  foreach(x -> add_asset!(M, asset()), 1:n_Assets)
+  foreach(x -> add_asset!(M, asset()), 1:n_assets)
   return Broker(M, cash; cost_model=cost_model, margin_model=margin_model)
 end
 
 Base.show(io::IO, B::Broker) = print(
-  io, "Broker with $(round(B.cash;digits=2)) funds and $(length(B.orders)) open orders"
+  io,
+  "Broker with $(round(B.cash;digits=2)) funds and $(length(B.orders)) open order",
+  length(B.orders) == 1 ? "" : "s",
 )
 
 """
@@ -107,11 +109,10 @@ place_order!(B,O)
 B
 # output
 
-Broker with 1000.0 funds and 1 open orders
+Broker with 1000.0 funds and 1 open order
 ```
 """
 function place_order!(B::Broker, O::Order)
-  #ToDo Check if requirements for placement are met
   push!(B.orders, O)
   return nothing
 end
@@ -128,6 +129,13 @@ Largest `|qty|`-capped signed quantity (same sign as `qty`) whose `margin_pct` f
 notional plus transaction cost fits within `cash`, at `fill_price` per unit. `margin_pct=1.0`
 (the default) reproduces the pre-margin behavior exactly. Assumes
 cost scales linearly with `|notional|`.
+
+```jldoctest
+Orcus.affordable_quantity(NoCost(), 10.0, 200.0, 1000.0)
+# output
+
+100.0
+```
 """
 function affordable_quantity(
   cm::CostModel, fill_price::Real, qty::Real, cash::Real; margin_pct::Real=1.0
@@ -145,6 +153,13 @@ end
 Largest `|qty|`-capped signed quantity (same sign as `qty`) whose notional times `rate`
 (the resolved [`short_margin_rate`](@ref)) fits within `cash`. `rate=0.0` (the `NoMargin`
 default) returns `qty` unchanged — unconstrained, matching the pre-margin behavior for shorts.
+
+```jldoctest
+Orcus.affordable_short_quantity(0.0, 10.0, 200.0, 1000.0)
+# output
+
+200.0
+```
 """
 function affordable_short_quantity(rate::Real, fill_price::Real, qty::Real, cash::Real)
   rate == 0.0 && return Float64(qty)
@@ -182,6 +197,18 @@ Insufficient funds are recorded in `B.rejected`, unless `strict=true`, in which 
 error — unless `O.allow_partial` is set, in which case the affordable fraction fills instead
 and the order stays open in the book for the remainder. A resting, untriggered limit/stop order
 is left untouched (not fulfilled, not rejected).
+
+```jldoctest
+Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Buy(A,10))
+Orcus.execute!(B, O)
+length(B.history)
+# output
+
+1
+```
 """
 function execute!(
   B::Broker, O::Order{D,K}, date::Int=length(B); strict::Bool=false
@@ -303,6 +330,19 @@ end
     process_last_order!(B::Broker)
 
 Pop and fill the most recently placed order via `execute!` (`strict=true`).
+
+```jldoctest
+Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Buy(A,10))
+place_order!(B,O)
+Orcus.process_last_order!(B)
+length(B.history)
+# output
+
+1
+```
 """
 function process_last_order!(B::Broker)
   isempty(B.orders) && error("No Orders to process")
@@ -367,6 +407,22 @@ end
     close_position!(B::Broker, key, P::Position, date::Int)
 
 Liquidate the whole of position `P` at its current market value.
+
+```jldoctest
+Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Buy(A,10))
+place_order!(B,O)
+Orcus.process_order!(B,O)
+key = Orcus.instrument_key(O.derivative)
+P = B.portfolio[key]
+Orcus.close_position!(B, key, P, length(B))
+length(B.history)
+# output
+
+2
+```
 """
 function close_position!(
   B::Broker, key::InstrumentKey, P::Position{D}, date::Int
@@ -434,6 +490,21 @@ end
 Charge one bar's worth of `borrow_rate(B.margin_model)` interest against every open position's
 financed exposure — `abs(value(P))` for a short, `P.loan` for a margin-financed long. No-op
 under `NoMargin` (or any model with `borrow_rate == 0.0`).
+
+```jldoctest
+Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Buy(A,10))
+place_order!(B,O)
+Orcus.process_order!(B,O)
+cash_before = B.cash
+Orcus.accrue_borrow_fee!(B)
+B.cash == cash_before
+# output
+
+true
+```
 """
 function accrue_borrow_fee!(B::Broker)
   B.margin_model isa NoMargin && return B
@@ -451,6 +522,20 @@ aggregate maintenance requirement (`Σ abs(value(P))*maintenance_margin_pct(B.ma
 records the bar in `B.margin_calls` and liquidates the whole book via
 [`request_to_close_all!`](@ref)/[`resolve_portfolio!`](@ref). No-op under `NoMargin` (or any
 model with `maintenance_margin_pct == 0.0`).
+
+```jldoctest
+Random.seed!(1234);
+B = broker(3,1000);
+A = B.market.assets[2]
+O = Order(Buy(A,10))
+place_order!(B,O)
+Orcus.process_order!(B,O)
+Orcus.check_margin!(B)
+isempty(B.margin_calls)
+# output
+
+true
+```
 """
 function check_margin!(B::Broker)
   B.margin_model isa NoMargin && return B
@@ -638,6 +723,19 @@ position_direction(B::Broker, ticker::String) = position_direction(B.portfolio, 
     unrealized_pnl(B::Broker) -> Float64
 
 Total unrealized P&L (mark minus cost basis) across all currently open positions.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+Orcus.process_order!(B,O);
+unrealized_pnl(B)
+# output
+
+-10.0
+```
 """
 unrealized_pnl(B::Broker) = sum(abs_return(P) for P in values(B.portfolio); init=0.0)
 
@@ -665,6 +763,18 @@ realized_pnl(B::Broker) = sum(realized_pnl(P) for P in values(B.portfolio); init
     length(B::Broker)
 
 Return the length of the market the Broker is operating on.
+
+```jldoctest
+Random.seed!(1234);
+x=asset();
+y=asset();
+M=market([x,y]);
+B=broker(M,1000);
+length(B)
+# output
+
+3651
+```
 """
 length(B::Broker) = length(B.market)
 
@@ -703,17 +813,18 @@ end
 
 Convert a Broker to an Asset
 
-```julia
+```jldoctest
 Random.seed!(1234);
 x=asset();
 y=asset();
 M=market([x,y]);
-B = broker(M,1000);
 BT = Backtest(M,CrossOverStrategy,1000)
 run_test(BT)
-A = to_index(BT.broker)
-```
+A = Orcus.to_index(BT.broker)
+# output
 
+Asset 'Broker' with 1 datasets
+```
 """
 function to_index(B::Broker)::Asset
   isempty(B.equity_history) && error("No equity history — run a backtest first")

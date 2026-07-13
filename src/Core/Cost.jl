@@ -6,6 +6,13 @@ fill to a `(commission, slippage)` pair, both expressed as positive cash amounts
 always *worsen* the fill (commission is paid, slippage is an adverse price move).
 
 Implement a new model by adding a `transaction_cost(::MyCostModel, notional)` method.
+
+```jldoctest
+NoCost() isa CostModel
+# output
+
+true
+```
 """
 abstract type CostModel end
 

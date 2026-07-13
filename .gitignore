@@ -1,3 +1,5 @@
 Manifest.toml
 docs/build/
 *.env
+TODO.md
+bench/

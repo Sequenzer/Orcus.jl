@@ -2,7 +2,7 @@ name = "Orcus"
 uuid = "45350dae-0ff4-4403-bb65-d8c585f51100"
 license = "GPL-3.0-or-later"
 version = "0.1.0"
-authors = ["Marcel Wack <wac.marcel@gmail.com> and contributors"]
+authors = ["Marcel Wack <wack@math.tu-berlin.de> and contributors"]
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"

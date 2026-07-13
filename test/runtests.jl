@@ -27,5 +27,4 @@ using Tables
   include("Analytics/Stats.jl")
   include("Lib/Stocks.jl")
   include("allocations.jl")
-  #include("Strategy.jl")
 end

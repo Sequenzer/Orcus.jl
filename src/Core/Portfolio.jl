@@ -19,6 +19,14 @@ Live positions for one concrete derivative type `D`. `positions` and `keys` are 
 contiguous vectors (hot-path iteration); per-order key lookup is a linear scan of `keys` —
 groups are small and orders are sparse relative to the bar loop, so the scan beats hashing
 an `InstrumentKey` (whose `String` ticker dominates the hash). Removal is swap-pop.
+
+```jldoctest
+g = Orcus.Group{Orcus.Buy}()
+isempty(g.positions)
+# output
+
+true
+```
 """
 struct Group{D<:Derivative}
   positions::Vector{Position{D}}
@@ -146,6 +154,19 @@ _add_group_loan!(pf::Portfolio, g::Group{D}) where {D} = (
 
 Sum of `abs(value(P))` over all open positions — the gross open exposure a maintenance-margin
 requirement is computed on. Same concretely-typed, allocation-free walk as [`total_value`](@ref).
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+Orcus.process_order!(B,O);
+Orcus.total_abs_value(B.portfolio)
+# output
+
+22.50173968887256
+```
 """
 function total_abs_value(pf::Portfolio)
   s = _group_abs_sum(pf.buy) + _group_abs_sum(pf.sell)
@@ -176,6 +197,19 @@ _add_group_abs_value!(pf::Portfolio, g::Group{D}) where {D} = (
 Charge `rate` against every position's financed exposure (`abs(value(P))` for a short,
 `P.loan` for a financed long), debiting each position's `realized_pnl`, and return the total
 fee. Same concretely-typed, allocation-free walk as [`total_value`](@ref).
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+Orcus.process_order!(B,O);
+Orcus.accrue_fees!(B.portfolio, 0.01)
+# output
+
+0.0
+```
 """
 function accrue_fees!(pf::Portfolio, rate::Float64)
   total = _group_accrue!(pf.buy, rate) + _group_accrue!(pf.sell, rate)
@@ -222,6 +256,18 @@ end
 
 Return the live `Position{D}` for `key`, creating an empty one on first fill. Type-stable in
 `D` (caller passes a concrete derivative), so the returned position is concrete.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+key=Orcus.instrument_key(Buy(A,10));
+P=Orcus.get_or_create!(B.portfolio, key, Buy(A,10));
+P.net_qty
+# output
+
+0.0
+```
 """
 function get_or_create!(pf::Portfolio, key::InstrumentKey, der::D) where {D<:Derivative}
   g = _group!(pf, D)
@@ -254,6 +300,21 @@ end
 
 Remove the (now closed) position for `key` from its typed group. Used by `execute!`, which
 knows the concrete `D` — no group scan.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+Orcus.process_order!(B,O);
+key=Orcus.instrument_key(O.derivative);
+Orcus.drop!(B.portfolio, key, Buy);
+isempty(B.portfolio)
+# output
+
+true
+```
 """
 drop!(pf::Portfolio, key::InstrumentKey, ::Type{D}) where {D<:Derivative} = (
   _drop_key!(pf, _group!(pf, D), key); pf
@@ -274,6 +335,20 @@ _del_from_group!(pf::Portfolio, g::Group{D}, key) where {D} = _drop_key!(pf, g, 
     set_all_close!(pf)
 
 Flag every open position for close. Barrier per type-group.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+O=Order(Buy(A,10));
+place_order!(B,O);
+Orcus.process_order!(B,O);
+Orcus.set_all_close!(B.portfolio);
+first(values(B.portfolio)).requestToClose
+# output
+
+true
+```
 """
 function set_all_close!(pf::Portfolio)
   _set_all_close!(pf.buy)
@@ -293,6 +368,21 @@ end
     set_ticker_close!(pf::Portfolio, ticker::String)
 
 Flag every open position in `ticker` for close. Barrier per type-group.
+
+```jldoctest
+Random.seed!(1);
+B=broker(3,1000);
+A=B.market.assets[2];
+ticker=A.ticker;
+O=Order(Buy(A,10));
+place_order!(B,O);
+Orcus.process_order!(B,O);
+Orcus.set_ticker_close!(B.portfolio, ticker);
+first(values(B.portfolio)).requestToClose
+# output
+
+true
+```
 """
 function set_ticker_close!(pf::Portfolio, ticker::String)
   _set_ticker_close!(pf.buy, ticker)

@@ -44,10 +44,10 @@ end
 """
     market(assets::Vector{Asset})
     market(asset::Asset)
-    market(n_Assets::Int)
+    market(n_assets::Int)
     market()
 Construct a new Market from the given assets, a single asset, or an empty market. The
-`n_Assets` constructor creates `n_Assets` random assets with default parameters.
+`n_assets` constructor creates `n_assets` random assets with default parameters.
 
 ```jldoctest
 Random.seed!(1);
@@ -61,7 +61,7 @@ length(M.data)
 market(assets::Vector{Asset}) = Market(assets)
 market() = market(Asset[])
 market(asset::Asset) = market([asset])
-market(n_Assets::Int) = Market([asset() for i in 1:n_Assets])
+market(n_assets::Int) = Market([asset() for i in 1:n_assets])
 
 function Base.show(io::IO, M::Market)
   print(io, "Market with $(length(M.data)) Assets: \n")
@@ -247,6 +247,16 @@ end
 
 Back-compat shim for the old view-based API: advances `M` to reveal bars `1:last(u)` via the
 `visible` cursor (`M` already holds the full series). `N` is ignored. Prefer [`advance_to!`](@ref).
+
+```jldoctest
+Random.seed!(1);
+M=market([asset(),asset()]);
+Orcus.set_data_to!(M, M, 1:3);
+length(M)
+# output
+
+3
+```
 """
 set_data_to!(M::Market, N::Market, u::UnitRange{Int}) = advance_to!(M, last(u))
 
