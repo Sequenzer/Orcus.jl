@@ -19,7 +19,7 @@ Orcus.jl is not yet registered. Add it directly from GitHub:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/Sequenzer/Orcus.jl")
+Pkg.add("Orcus")
 ```
 
 Requires Julia ≥ 1.10.
